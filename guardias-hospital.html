@@ -171,6 +171,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
 }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://apis.google.com/js/api.js" async defer></script>
 </head>
 <body>
 
@@ -181,6 +183,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
   <button class="nav-btn" onclick="showView('resumen',this)">Resumen</button>
   <button class="nav-btn" onclick="showView('config',this)">Config</button>
   <button class="nav-btn" onclick="showView('instructivo',this)">📖</button>
+  <button class="btn btn-ghost btn-sm" id="btn-drive" onclick="driveSync()" style="margin-left:6px;font-size:11px" title="Sincronizar con Google Drive">☁</button>
+  <div id="drive-badge" style="font-size:10px;color:var(--text3);margin-left:2px"></div>
 </div>
 
 <!-- ═══ CALENDARIO ═══ -->
@@ -297,6 +301,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
     </div>
     <div class="cfg-card">
       <h3>💾 Datos</h3>
+      <div class="flex-gap mt-8">
+        <button class="btn btn-primary" onclick="driveSync()">☁ Sync Google Drive</button>
+      </div>
+      <div id="drive-info" style="font-size:11px;color:var(--text2);margin-top:6px"></div>
       <div class="flex-gap mt-8">
         <button class="btn btn-ghost" onclick="exportarJSON()">⬇ Backup</button>
         <button class="btn btn-ghost" onclick="document.getElementById('imp-file').click()">⬆ Restaurar</button>
@@ -2081,6 +2089,149 @@ document.addEventListener('keydown',e=>{
 
 </div>
 
+
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  GOOGLE DRIVE SYNC
+// ═══════════════════════════════════════════════════════════
+const DRIVE_CLIENT_ID = '199851534179-4dc8or0cup1c25u0mq07hc3i85d7qm4p.apps.googleusercontent.com';
+const DRIVE_SCOPE     = 'https://www.googleapis.com/auth/drive.appdata';
+const DRIVE_FILENAME  = 'guardias-obstetricas-sync.json';
+
+let driveToken = null;
+let driveSyncing = false;
+
+function setDriveBadge(msg, color='var(--text3)'){
+  const b = document.getElementById('drive-badge');
+  const i = document.getElementById('drive-info');
+  if(b) b.innerHTML = `<span style="color:${color}">${msg}</span>`;
+  if(i) i.innerHTML = `<span style="color:${color}">${msg}</span>`;
+}
+
+async function getToken(){
+  return new Promise((resolve,reject)=>{
+    if(!window.google?.accounts?.oauth2) return reject('Google no disponible');
+    const client = google.accounts.oauth2.initTokenClient({
+      client_id: DRIVE_CLIENT_ID,
+      scope: DRIVE_SCOPE,
+      callback:(resp)=>{
+        if(resp.error) return reject(resp.error);
+        driveToken = resp.access_token;
+        resolve(resp.access_token);
+      }
+    });
+    client.requestAccessToken({prompt: driveToken?'':'consent'});
+  });
+}
+
+async function findFile(token){
+  const r = await fetch(
+    `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${DRIVE_FILENAME}'&fields=files(id,modifiedTime)`,
+    {headers:{Authorization:`Bearer ${token}`}}
+  );
+  const d = await r.json();
+  return d.files?.[0]||null;
+}
+
+async function readFile(token,fileId){
+  const r = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+    {headers:{Authorization:`Bearer ${token}`}}
+  );
+  return await r.json();
+}
+
+async function writeFile(token,data,fileId=null){
+  const meta={name:DRIVE_FILENAME,parents:fileId?undefined:['appDataFolder']};
+  const body=new FormData();
+  body.append('metadata',new Blob([JSON.stringify(meta)],{type:'application/json'}));
+  body.append('file',new Blob([JSON.stringify(data)],{type:'application/json'}));
+  const url=fileId
+    ?`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`
+    :`https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`;
+  const r=await fetch(url,{method:fileId?'PATCH':'POST',headers:{Authorization:`Bearer ${token}`},body});
+  return await r.json();
+}
+
+async function driveSync(silencioso=false){
+  if(driveSyncing) return;
+  driveSyncing=true;
+  setDriveBadge('Conectando...','var(--accent)');
+  const btn=document.getElementById('btn-drive');
+  if(btn) btn.textContent='⏳';
+
+  try{
+    const token = await getToken();
+    setDriveBadge('Sincronizando...','var(--accent)');
+
+    const file = await findFile(token);
+
+    if(!file){
+      // Primera vez: subir datos locales
+      state.lastSync = new Date().toISOString();
+      save();
+      await writeFile(token,state);
+      setDriveBadge('✅ Sincronizado','var(--accent2)');
+      if(!silencioso) alert('✅ Datos guardados en Google Drive por primera vez.');
+    } else {
+      const driveTime = new Date(file.modifiedTime).getTime();
+      const localTime = state.lastSync ? new Date(state.lastSync).getTime() : 0;
+
+      if(driveTime > localTime + 5000){
+        // Drive más nuevo → bajar
+        if(!silencioso){
+          const ok=confirm('☁ Drive tiene datos más recientes.
+¿Reemplazar datos locales con los de Drive?');
+          if(!ok){ setDriveBadge('Cancelado','var(--warn)'); driveSyncing=false; if(btn) btn.textContent='☁'; return; }
+        }
+        const remote = await readFile(token,file.id);
+        state = remote;
+        state.lastSync = new Date().toISOString();
+        save();
+        if(state.lastMes){curY=state.lastMes.y;curM=state.lastMes.m;}
+        renderCalendario();
+        setDriveBadge('✅ Actualizado desde Drive','var(--accent2)');
+        if(!silencioso) alert('✅ Datos actualizados desde Google Drive.');
+      } else {
+        // Local más nuevo → subir
+        state.lastSync = new Date().toISOString();
+        save();
+        await writeFile(token,state,file.id);
+        setDriveBadge('✅ Sincronizado','var(--accent2)');
+        if(!silencioso) alert('✅ Datos guardados en Google Drive.');
+      }
+    }
+
+    // Mostrar fecha del último sync
+    const t=new Date(state.lastSync);
+    const fmt=t.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'})+' '+t.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+    setDriveBadge(`☁ ${fmt}`,'var(--accent2)');
+
+  } catch(e){
+    console.error('Drive error:',e);
+    setDriveBadge('⚠ Error','var(--danger)');
+    if(!silencioso) alert('Error al conectar con Google Drive.
+'+e);
+  }
+
+  driveSyncing=false;
+  if(btn) btn.textContent='☁';
+}
+
+// Mostrar último sync al cargar
+window.addEventListener('load',()=>{
+  setTimeout(()=>{
+    if(state.lastSync){
+      const t=new Date(state.lastSync);
+      const fmt=t.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'})+' '+t.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+      setDriveBadge(`☁ ${fmt}`,'var(--accent2)');
+    } else {
+      setDriveBadge('☁ Sin sync');
+    }
+  },1500);
+});
+</script>
 
 </body>
 </html>
