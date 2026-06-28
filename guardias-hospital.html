@@ -559,7 +559,25 @@ function load(){
 // ═══════════════════════════════════════════════════════════
 //  DISPONIBILIDAD: helpers
 // ═══════════════════════════════════════════════════════════
+function getEstadoMes(medicoId, y, m){
+  // Estado de la obstétrica SOLO para este mes
+  // Si no hay config para este mes → activo por defecto
+  const disp = getDispMes(medicoId, y, m);
+  if(disp && disp.estado !== undefined) return disp.estado;
+  return 'activo'; // default: activo si no hay config este mes
+}
+
 function getDispMes(medicoId, y, m){
+  // Solo lectura — NO crea el mes si no existe
+  const med = getMedico(medicoId);
+  if(!med) return null;
+  const mk = mesKey(y,m);
+  if(!med.disponibilidad) return null;
+  return med.disponibilidad[mk] || null;
+}
+
+function getOrCreateDispMes(medicoId, y, m){
+  // Lectura+escritura — crea el mes si no existe (solo al guardar)
   const med = getMedico(medicoId);
   if(!med) return null;
   const mk = mesKey(y,m);
@@ -838,7 +856,7 @@ function abrirModalDia(d){
 
   document.getElementById('dia-label').textContent = `${nomDow} ${d} de ${NOM_MES[curM-1]} ${curY}`;
 
-  const disponibles = state.medicos.filter(m=>m.estado!=='inactivo');
+  const disponibles = state.medicos.filter(m=>getEstadoMes(m.id,curY,curM)!=='inactivo');
 
   let html = '';
   disponibles.forEach(m=>{
@@ -921,7 +939,7 @@ function getTipoInfo(tipo){
 
 function renderActPanel(){
   const total = diasEnMes(curY,curM);
-  const todos = state.medicos.filter(m=>m.estado!=='inactivo');
+  const todos = state.medicos.filter(m=>getEstadoMes(m.id,curY,curM)!=='inactivo');
   const mesNom = `${NOM_MES[curM-1]} ${curY}`;
 
   // Para cada médico, mapear sus días con actividad especial
@@ -1094,7 +1112,7 @@ function renderMedicos(){
     const maxG = disp?.maxGuard ?? state.config.maxGuardGlobal ?? 8;
     const countG = countGuardiasMes(m.id, curY, curM);
     return `
-    <div class="medico-card ${m.estado==='inactivo'?'opacity-50':''}"
+    <div class="medico-card ${getEstadoMes(m.id,curY,curM)==='inactivo'?'opacity-50':''}"
          draggable="true"
          data-id="${m.id}"
          ondragstart="dragStart(event)"
@@ -1109,7 +1127,7 @@ function renderMedicos(){
         <div class="med-sub">
           <span>${countG}/${maxG} guardias</span>
           ${nBloques?`<span style="color:var(--accent);font-size:10px;font-weight:600">📋 ${nBloques} bloque${nBloques>1?'s':''}</span>`:'<span style="color:var(--text3);font-size:10px">Sin bloques</span>'}
-          ${m.estado==='inactivo'?'<span style="color:var(--danger);font-size:10px">● Inactivo</span>':''}
+          ${getEstadoMes(m.id,curY,curM)==='inactivo'?'<span style="color:var(--danger);font-size:10px">● Inactivo este mes</span>':''}
         </div>
       </div>
       <div onclick="abrirModalMedico('${m.id}')" style="cursor:pointer">✏️</div>
@@ -1119,14 +1137,14 @@ function renderMedicos(){
 
 function abrirModalNuevoMedico(){
   editMedicoId = null;
-  editBloques = [];
+  editBloques = []; // nueva obstétrica empieza sin bloques en este mes
   document.getElementById('med-nombre').value='';
-  document.getElementById('med-estado').value='activo';
+  document.getElementById('med-estado').value='activo'; // nueva: activo por defecto
   const globalG2 = state.config.maxGuardGlobal||8;
   document.getElementById('med-max-guard-hint').textContent=`(global: ${globalG2})`;
   document.getElementById('med-max-guard').value='';
   document.getElementById('med-max-finde').value='';
-  document.getElementById('modal-med-title').textContent='Nueva obstétrica';
+  document.getElementById('modal-med-title').textContent=`Nueva obstétrica — ${NOM_MES[curM-1]} ${curY}`;
   document.getElementById('modal-mes-label').textContent=`${NOM_MES[curM-1]} ${curY}`;
   renderBloques();
   document.getElementById('modal-medico').classList.add('open');
@@ -1147,16 +1165,16 @@ function setFechasDefecto(){
 function abrirModalMedico(id){
   editMedicoId = id;
   const m = getMedico(id);
-  const disp = getDispMes(id, curY, curM);
-  editBloques = JSON.parse(JSON.stringify(disp?.bloques||[]));
+  const disp = getDispMes(id, curY, curM); // null si no hay config para este mes
+  editBloques = JSON.parse(JSON.stringify(disp?.bloques||[])); // vacío si mes sin configurar
 
   document.getElementById('med-nombre').value=m.nombre;
-  document.getElementById('med-estado').value=m.estado||'activo';
+  document.getElementById('med-estado').value=getEstadoMes(id,curY,curM);
   const globalG = state.config.maxGuardGlobal||8;
   document.getElementById('med-max-guard-hint').textContent=`(global: ${globalG})`;
   document.getElementById('med-max-guard').value=disp?.maxGuard!=null?disp.maxGuard:'';
   document.getElementById('med-max-finde').value=disp?.maxFinde??'';
-  document.getElementById('modal-med-title').textContent=`Editar: ${m.nombre}`;
+  document.getElementById('modal-med-title').textContent=`Editar: ${m.nombre} — ${NOM_MES[curM-1]} ${curY}`;
   document.getElementById('modal-mes-label').textContent=`${NOM_MES[curM-1]} ${curY}`;
   renderBloques();
   setFechasDefecto();
@@ -1276,15 +1294,16 @@ function guardarMedico(){
 
   if(editMedicoId){
     const m = getMedico(editMedicoId);
-    m.nombre=nombre; m.estado=estado;
+    m.nombre=nombre; // nombre es global, estado va por mes
     if(!m.disponibilidad) m.disponibilidad={};
-    if(!m.disponibilidad[mk]) m.disponibilidad[mk]={};
-    m.disponibilidad[mk].maxGuard=maxGuard;
-    m.disponibilidad[mk].maxFinde=maxFinde;
-    m.disponibilidad[mk].bloques=editBloques;
+    if(!m.disponibilidad[mk]) m.disponibilidad[mk]={ estado:'activo', maxGuard:null, maxFinde:null, bloques:[] };
+    m.disponibilidad[mk].estado   = estado;  // ← guardar estado por mes
+    m.disponibilidad[mk].maxGuard = maxGuard;
+    m.disponibilidad[mk].maxFinde = maxFinde;
+    m.disponibilidad[mk].bloques  = JSON.parse(JSON.stringify(editBloques));
   } else {
     const newM = { id:uuid(), nombre, estado, disponibilidad:{}, guardias:{} };
-    newM.disponibilidad[mk]={ maxGuard, maxFinde, bloques:editBloques };
+    newM.disponibilidad[mk]={ maxGuard, maxFinde, bloques:JSON.parse(JSON.stringify(editBloques)) };
     state.medicos.push(newM);
   }
   save();
@@ -1313,7 +1332,7 @@ function diagnosticarMes(){
   const MIN_DIA = state.config.minPorDia ?? 3;
   const MAX_DIA = state.config.maxPorDia ?? 4;
 
-  const activos = state.medicos.filter(m => m.estado !== 'inactivo');
+  const activos = state.medicos.filter(m => getEstadoMes(m.id,curY,curM) !== 'inactivo');
 
   // Médicos que pueden hacer guardia este mes (tienen al menos un día disponible)
   const paraGuardia = activos.filter(m => {
@@ -1421,7 +1440,7 @@ function generarAuto(){
   const mk = mesKey(curY,curM);
   if(!state.guardias) state.guardias={};
 
-  const activos = state.medicos.filter(m=>m.estado!=='inactivo');
+  const activos = state.medicos.filter(m=>getEstadoMes(m.id,curY,curM)!=='inactivo');
   if(!activos.length){ alert('No hay obstétricas activas.'); return; }
 
   const g = getGuardiasMes(curY,curM);
@@ -1596,7 +1615,7 @@ function renderResumen(){
       <td><div style="display:flex;align-items:center;gap:8px">
         <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0"></div>
         <span style="font-weight:600;color:var(--accent)">${m.nombre}</span>
-        ${m.estado==='inactivo'?'<span style="color:var(--danger);font-size:10px">inactivo</span>':''}
+        ${getEstadoMes(m.id,curY,curM)==='inactivo'?'<span style="color:var(--danger);font-size:10px">inactivo este mes</span>':''}
         <span style="font-size:10px;color:var(--text3)">→ ver</span>
       </div></td>
       <td style="font-weight:700;color:${color}">${n} <span style="font-size:11px;color:var(--text3)">(${nF} finde)</span></td>
@@ -1623,6 +1642,7 @@ function aplicarGlobalATodos(){
   const mk = mesKey(curY, curM);
   let n = 0;
   state.medicos.forEach(m=>{
+    if(!m.disponibilidad) m.disponibilidad={};
     if(!m.disponibilidad) m.disponibilidad={};
     if(!m.disponibilidad[mk]) m.disponibilidad[mk]={ maxGuard:null, maxFinde:null, bloques:[] };
     if(m.disponibilidad[mk].maxGuard !== null){
