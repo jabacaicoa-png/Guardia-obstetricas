@@ -1520,8 +1520,9 @@ function generarAuto(){
     }
   }
 
-  // FASE 2: completar hasta MAX_DIA con presupuesto y equidad
-  for(let d=1;d<=total;d++){
+  // FASE 2: completar hasta MAX_DIA — orden aleatorio para distribuir el 4to slot
+  const diasFase2 = [...Array(total).keys()].map(i=>i+1).sort(()=>Math.random()-.5);
+  for(const d of diasFase2){
     if(state.guardias[mk][String(d)].length >= MAX_DIA) continue;
     let candidatos = sort_eq(activos.filter(m=>puedeEseDia(m,d,false)&&tienePrespuesto(m,d)));
     if(!candidatos.length) candidatos = sort_eq(activos.filter(m=>puedeEseDia(m,d,true)&&tienePrespuesto(m,d)));
@@ -1838,6 +1839,7 @@ document.addEventListener('keydown',e=>{
   </div>
 
 </div>
+
 
 </body>
 </html>
