@@ -1769,103 +1769,118 @@ function exportarPDF(){
   const { jsPDF } = window.jspdf;
   if(!jsPDF){ alert('Error cargando jsPDF. Verificá tu conexión.'); return; }
 
-  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  // ── Landscape A4 para máximo espacio ──
+  const doc = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
   const total = diasEnMes(curY, curM);
   const g = getGuardiasMes(curY, curM);
   const titulo = `${NOM_MES[curM-1]} ${curY}`;
-  const W = 210, H = 297;
-  const margen = 10;
+  const W = 297, H = 210; // landscape
+  const margen = 8;
   const colW = (W - margen*2) / 7;
+
+  // Calcular cuántas filas necesitamos
+  const start = primerDia(curY, curM);
+  const totalCeldas = start + total;
+  const nRows = Math.ceil(totalCeldas / 7);
+  // Altura disponible para el calendario
+  const headerH = 22; // título + cabecera
+  const actH = 30;    // sección actividades abajo
+  const celH = Math.min(42, Math.floor((H - headerH - actH - margen) / nRows));
 
   // ── Título ──
   doc.setFont('helvetica','bold');
-  doc.setFontSize(16);
-  doc.text(titulo, W/2, 18, {align:'center'});
+  doc.setFontSize(18);
+  doc.setTextColor(37,99,235);
+  doc.text(titulo, W/2, 12, {align:'center'});
+  doc.setTextColor(0,0,0);
 
   // ── Cabecera días semana ──
-  const dias = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-  doc.setFontSize(8);
+  const diasSem = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  doc.setFontSize(9);
   doc.setFont('helvetica','bold');
-  let y = 24;
-  dias.forEach((d,i)=>{
+  let y = 16;
+  diasSem.forEach((d,i)=>{
     doc.setFillColor(37,99,235);
     doc.rect(margen + i*colW, y, colW, 6, 'F');
     doc.setTextColor(255,255,255);
-    doc.text(d, margen + i*colW + colW/2, y+4.2, {align:'center'});
+    doc.text(d, margen + i*colW + colW/2, y+4.3, {align:'center'});
   });
   doc.setTextColor(0,0,0);
+  y += 6;
 
-  // ── Celdas del calendario ──
-  const start = primerDia(curY, curM);
-  const celH = 22; // altura celda — más espacio para nombres
-  let row = 0, col = start;
-  y = 30;
-
-  // Colores por médico
+  // Colores por obstétrica
   const COLORES_RGB = [
     [37,99,235],[13,148,136],[217,119,6],[220,38,38],[124,58,237],
     [219,39,119],[8,145,178],[101,163,13],[234,88,12],[2,132,199],
     [147,51,234],[192,38,211],[5,150,105],[202,138,4],[185,28,28],[79,70,229]
   ];
-
   function colorMedIdx(id){
-    const i = state.medicos.findIndex(m=>m.id===id);
+    const i=state.medicos.findIndex(m=>m.id===id);
     return COLORES_RGB[i>=0?i%COLORES_RGB.length:0];
   }
+
+  let row=0, col=start;
 
   for(let d=1;d<=total;d++){
     const x = margen + col*colW;
     const cy = y + row*celH;
 
-    // Celda
-    doc.setDrawColor(200,200,200);
-    doc.setFillColor(248,250,252);
+    // Fondo celda alternado
+    doc.setDrawColor(180,180,180);
+    doc.setFillColor(col%2===0?250:255, col%2===0?250:255, col%2===0?250:255);
     doc.rect(x, cy, colW, celH, 'FD');
 
-    // Número día
+    // Número día — grande y bold
     doc.setFont('helvetica','bold');
-    doc.setFontSize(7);
-    doc.setTextColor(80,80,80);
-    doc.text(String(d), x+1.5, cy+3.5);
+    doc.setFontSize(11);
+    doc.setTextColor(37,99,235);
+    doc.text(String(d), x+2, cy+5.5);
 
-    // Nombres — chip de color de fondo ocupando el ancho de la celda
+    // Nombres
     const asig = g[String(d)]||[];
-    const chipH = 3.2;   // altura del chip
-    const chipMargen = 0.8;
-    const chipW = colW - chipMargen*2; // ancho completo de la celda menos margen
-    const startY = cy + 4.5;
+    const chipMargen = 1;
+    const chipW = colW - chipMargen*2;
+    // Chips dinámicos con fuente 50% más grande
+    const disponH = celH - 7;
+    const maxChips = Math.min(asig.length, 5);
+    if(maxChips > 0){
+      const gap = 1;
+      const chipH = (disponH - gap*(maxChips-1)) / maxChips;
+      const maxW = chipW - 4;
 
-    asig.slice(0,4).forEach((id,idx)=>{
-      const med = getMedico(id);
-      if(!med) return;
-      const [r,g2,b] = colorMedIdx(id);
-      const chipY = startY + idx*(chipH+0.8);
-
-      // Fondo chip
-      doc.setFillColor(r,g2,b,0.15); // color suave
-      doc.setFillColor(Math.min(255,r+180), Math.min(255,g2+180), Math.min(255,b+180));
-      doc.rect(x+chipMargen, chipY, chipW, chipH, 'F');
-
-      // Borde izquierdo de color
-      doc.setFillColor(r,g2,b);
-      doc.rect(x+chipMargen, chipY, 1.2, chipH, 'F');
-
-      // Texto — ajustar tamaño para que entre en el ancho
+      // Fuente base * 1.5 (50% más grande), ajustada al apellido más largo
+      let fontSize = chipH * 0.85 * 1.5;
       doc.setFont('helvetica','bold');
-      doc.setFontSize(6);
-      doc.setTextColor(30,30,30);
-      // Truncar nombre si es muy largo
-      let nombre = med.nombre;
-      const maxW = chipW - 2.5;
-      while(doc.getTextWidth(nombre) > maxW && nombre.length > 3){
-        nombre = nombre.slice(0,-1);
-      }
-      if(nombre !== med.nombre) nombre = nombre.slice(0,-1) + '.';
-      doc.text(nombre, x+chipMargen+2, chipY+chipH*0.72);
-    });
+      asig.slice(0,5).forEach(id=>{
+        const med=getMedico(id); if(!med) return;
+        let fs = fontSize;
+        doc.setFontSize(fs);
+        while(fs > 4 && doc.getTextWidth(med.nombre) > maxW){
+          fs -= 0.3;
+          doc.setFontSize(fs);
+        }
+        if(fs < fontSize) fontSize = fs;
+      });
+      fontSize = Math.max(fontSize, 4);
 
+      asig.slice(0,5).forEach((id,idx)=>{
+        const med=getMedico(id); if(!med) return;
+        const [r,g2,b]=colorMedIdx(id);
+        const chipY = cy + 7 + idx*(chipH + gap);
+
+        doc.setFillColor(Math.min(255,r+190), Math.min(255,g2+190), Math.min(255,b+190));
+        doc.rect(x+chipMargen, chipY, chipW, chipH, 'F');
+        doc.setFillColor(r,g2,b);
+        doc.rect(x+chipMargen, chipY, 2, chipH, 'F');
+
+        doc.setFont('helvetica','bold');
+        doc.setFontSize(fontSize);
+        doc.setTextColor(20,20,20);
+        doc.text(med.nombre, x+chipMargen+2.8, chipY+chipH*0.72);
+      });
+    }
     col++;
-    if(col===7){ col=0; row++; }
+    if(col===7){col=0;row++;}
   }
 
   // ── Actividades del mes ──
