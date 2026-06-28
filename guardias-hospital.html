@@ -1,0 +1,1689 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guardias Hospital</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+:root {
+  --bg:#ffffff; --surface:#f5f6f8; --surface2:#eaecf0; --border:#d0d5de;
+  --accent:#2563eb; --accent2:#0d9488; --warn:#d97706; --danger:#dc2626;
+  --text:#111827; --text2:#4b5563; --text3:#9ca3af;
+  --r:10px; --rs:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+
+/* TOPBAR */
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;display:flex;align-items:center;height:52px;gap:4px;position:sticky;top:0;z-index:100;}
+.topbar-title{font-size:15px;font-weight:700;margin-right:auto;}
+.topbar-title span{color:var(--accent);}
+.nav-btn{background:none;border:none;color:var(--text2);padding:6px 12px;cursor:pointer;font-size:13px;font-family:inherit;font-weight:500;border-radius:var(--rs);transition:all .15s;}
+.nav-btn:hover{background:var(--surface2);color:var(--text);}
+.nav-btn.active{background:var(--accent);color:#fff;}
+
+/* VIEWS */
+.view{display:none;padding:20px 16px;max-width:1100px;margin:0 auto;}
+.view.active{display:block;}
+
+/* HEADINGS */
+.sec-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:8px;}
+.sec-title{font-size:17px;font-weight:700;}
+.sec-sub{color:var(--text2);font-size:12px;margin-top:2px;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:var(--rs);border:none;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;}
+.btn-primary{background:var(--accent);color:#fff;} .btn-primary:hover{background:#1d4ed8;}
+.btn-success{background:var(--accent2);color:#fff;} .btn-success:hover{background:#0f766e;}
+.btn-warn{background:var(--warn);color:#fff;} .btn-warn:hover{background:#b45309;}
+.btn-danger{background:var(--danger);color:#fff;} .btn-danger:hover{background:#b91c1c;}
+.btn-ghost{background:var(--surface2);color:var(--text2);border:1px solid var(--border);}
+.btn-ghost:hover{color:var(--text);border-color:var(--accent);}
+.btn-sm{padding:4px 10px;font-size:12px;}
+.icon-btn{background:none;border:none;color:var(--text3);cursor:pointer;padding:4px;border-radius:4px;font-size:14px;transition:all .15s;line-height:1;}
+.icon-btn:hover{color:var(--text);background:var(--surface2);}
+.icon-btn.red:hover{color:var(--danger);}
+
+/* FORMS */
+.form-group{display:flex;flex-direction:column;gap:4px;}
+label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;}
+input,select,textarea{background:#fff;border:1px solid var(--border);border-radius:var(--rs);color:var(--text);padding:7px 10px;font-family:inherit;font-size:13px;outline:none;transition:border-color .15s;}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);}
+.form-row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;}
+
+/* CARD */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;}
+
+/* MÉDICOS GRID */
+.medicos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px;margin-bottom:16px;}
+.medico-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;align-items:center;gap:10px;transition:border-color .15s, opacity .15s;cursor:pointer;}
+.medico-card.dragging{opacity:.4;border-style:dashed;}
+.medico-card.drag-over{border-color:var(--accent2);background:#f0fdf4;}
+.drag-handle{cursor:grab;color:var(--text3);font-size:16px;padding:0 4px;touch-action:none;}
+.drag-handle:active{cursor:grabbing;}
+.medico-card:hover{border-color:var(--accent);}
+.med-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;}
+.med-info{flex:1;min-width:0;}
+.med-name{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.med-sub{color:var(--text2);font-size:11px;margin-top:2px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.badge{font-size:10px;padding:2px 7px;border-radius:100px;font-weight:600;}
+.badge-guard{background:#dbeafe;color:#1e40af;}
+.badge-cons{background:#fef3c7;color:#92400e;}
+.badge-tarde{background:#d1fae5;color:#065f46;}
+.badge-nodis{background:#fee2e2;color:#991b1b;}
+
+/* CALENDAR */
+.cal-controls{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.month-nav{display:flex;align-items:center;gap:8px;}
+.month-label{font-size:17px;font-weight:700;min-width:150px;text-align:center;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:16px;}
+.cal-head{text-align:center;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;padding:5px 0;}
+.cal-cell{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:6px;min-height:90px;cursor:pointer;transition:border-color .15s;position:relative;}
+.cal-cell:hover{border-color:var(--accent);}
+.cal-cell.empty{background:transparent;border-color:transparent;cursor:default;}
+.cal-cell.today{border-color:var(--accent2);}
+.cal-cell.sin-cubrir{border-color:var(--warn);}
+.cal-day{font-size:11px;font-weight:800;color:#111827;margin-bottom:4px;}
+.cal-cell.today .cal-day{color:var(--accent2);}
+.cal-chips{display:flex;flex-direction:column;gap:2px;}
+.chip{font-size:10px;font-weight:700;padding:2px 5px;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:#dbeafe;color:#1e3a8a;}
+.chip.cons{background:#fef3c7;color:#78350f;}
+.chip.nodis{background:#fee2e2;color:#991b1b;}
+.cal-empty-msg{font-size:10px;color:var(--text3);font-style:italic;}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:200;padding:16px;}
+.overlay.open{display:flex;}
+.modal{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:22px;width:100%;max-width:580px;max-height:90vh;overflow-y:auto;}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
+.modal-sub{font-size:12px;color:var(--accent);margin-bottom:14px;font-weight:600;}
+.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
+
+/* DISPONIBILIDAD LIST */
+.disp-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;max-height:220px;overflow-y:auto;}
+.disp-item{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:8px 10px;font-size:12px;}
+.disp-item .tipo-badge{min-width:80px;text-align:center;}
+.disp-item .detalle{flex:1;color:var(--text2);}
+
+/* RESUMEN */
+.res-table{width:100%;border-collapse:collapse;font-size:13px;}
+.res-table th{text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;}
+.res-table td{padding:8px 10px;border-bottom:1px solid var(--border);}
+.res-table tr:last-child td{border-bottom:none;}
+.res-table tr:hover td{background:var(--surface);}
+.bar-wrap{background:var(--surface2);border-radius:100px;height:6px;min-width:70px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:100px;background:var(--accent);}
+
+/* MODAL SELECTOR (asignar día) */
+.med-sel-row{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--rs);border:1px solid var(--border);cursor:pointer;transition:all .15s;background:#fff;margin-bottom:5px;}
+.med-sel-row:hover{border-color:var(--accent);}
+.med-sel-row.selected{border-color:var(--accent2);background:#f0fdf4;}
+.med-sel-row.bloq{opacity:.4;pointer-events:none;}
+.chk{width:16px;height:16px;border:2px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;}
+.med-sel-row.selected .chk{background:var(--accent2);border-color:var(--accent2);color:#fff;}
+
+/* CONFIG */
+.cfg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:16px;}
+.cfg-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;}
+.cfg-card h3{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;}
+.alert{padding:10px 12px;border-radius:var(--rs);font-size:12px;margin-bottom:10px;display:flex;gap:8px;}
+.alert-info{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;}
+.alert-warn{background:#fffbeb;border:1px solid #fde68a;color:#92400e;}
+
+.mt-8{margin-top:8px;} .mt-12{margin-top:12px;} .mt-16{margin-top:16px;}
+.flex-gap{display:flex;gap:8px;flex-wrap:wrap;}
+.text-sm{font-size:12px;color:var(--text2);}
+.tag-count{display:inline-flex;align-items:center;justify-content:center;background:var(--surface2);border:1px solid var(--border);border-radius:100px;font-size:10px;font-weight:700;padding:1px 7px;color:var(--text2);margin-left:4px;}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text3);}
+.empty-state .icon{font-size:36px;margin-bottom:10px;}
+
+/* PANEL ACTIVIDADES */
+.act-panel{margin-top:20px;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.act-panel-title{background:var(--surface2);padding:10px 14px;font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;justify-content:space-between;}
+.act-day-row{display:flex;gap:0;border-top:1px solid var(--border);}
+.act-day-label{background:var(--surface);padding:8px 10px;font-size:12px;font-weight:700;min-width:70px;border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;}
+.act-day-label .dn{font-size:10px;color:var(--text3);font-weight:500;}
+.act-items{display:flex;flex-wrap:wrap;gap:4px;padding:7px 10px;align-items:center;flex:1;}
+.act-chip{font-size:10px;font-weight:600;padding:2px 7px;border-radius:100px;white-space:nowrap;}
+.act-chip-cons{background:#fef3c7;color:#78350f;}
+.act-chip-tarde{background:#d1fae5;color:#065f46;}
+.act-chip-nodis{background:#fee2e2;color:#991b1b;}
+.act-chip-lic{background:#ede9fe;color:#5b21b6;}
+.act-empty{font-size:11px;color:var(--text3);font-style:italic;padding:7px 10px;}
+
+/* DISPONIBILIDAD - MES PANEL */
+.disp-mes-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:14px;}
+.disp-mes-panel h4{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;}
+
+/* Tag tipo */
+.tag-g{background:#dbeafe;color:#1e40af;font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;}
+.tag-c{background:#fef3c7;color:#92400e;font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;}
+.tag-n{background:#fee2e2;color:#991b1b;font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;}
+
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px;}
+
+@media(max-width:600px){
+  .chip{font-size:9px;padding:1px 4px;}
+  .cal-cell{min-height:60px;padding:4px;}
+  .form-row{flex-direction:column;}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-title">🏥 <span>Guardias</span> Hospital</div>
+  <button class="nav-btn active" onclick="showView('calendario',this)">Calendario</button>
+  <button class="nav-btn" onclick="showView('medicos',this)">Obstétricas</button>
+  <button class="nav-btn" onclick="showView('resumen',this)">Resumen</button>
+  <button class="nav-btn" onclick="showView('config',this)">Config</button>
+</div>
+
+<!-- ═══ CALENDARIO ═══ -->
+<div class="view active" id="view-calendario">
+  <div class="cal-controls">
+    <div class="month-nav">
+      <button class="btn btn-ghost btn-sm" onclick="prevMonth()">‹</button>
+      <div class="month-label" id="month-label"></div>
+      <button class="btn btn-ghost btn-sm" onclick="nextMonth()">›</button>
+    </div>
+    <button class="btn btn-primary" onclick="generarAuto()">⚡ Generar</button>
+    <button class="btn btn-ghost" onclick="diagnosticarMes()">🔍 Diagnóstico</button>
+    <button class="btn btn-ghost" onclick="limpiarMes()">🗑 Limpiar mes</button>
+    <button class="btn btn-ghost" onclick="window.print()">🖨 Imprimir</button>
+  </div>
+  <div id="filtro-banner"></div>
+  <div id="cal-alerts"></div>
+  <div class="cal-grid" id="cal-grid"></div>
+  <div class="act-panel" id="act-panel" style="display:none">
+    <div class="act-panel-title"><span>📋 Actividades del mes — obstétricas fuera de guardia</span><button class="btn btn-ghost btn-sm" onclick="document.getElementById('act-panel').style.display='none'">Ocultar</button></div>
+    <div id="act-panel-body"></div>
+  </div>
+  <div style="margin-top:10px" id="act-panel-btn-wrap"><button class="btn btn-ghost btn-sm" onclick="renderActPanel()">📋 Ver actividades del mes</button></div>
+</div>
+
+<!-- ═══ MÉDICOS ═══ -->
+<div class="view" id="view-medicos">
+  <div class="sec-header">
+    <div>
+      <div class="sec-title">Obstétricas <span id="med-count" class="tag-count">0</span></div>
+      <div class="sec-sub">Hacé clic en una obstétrica para editar su disponibilidad mensual.</div>
+    </div>
+    <div class="flex-gap" style="align-items:center">
+      <div class="month-nav">
+        <button class="btn btn-ghost btn-sm" onclick="prevMonth();renderMedicos()">‹</button>
+        <div class="month-label" id="med-month-label" style="font-size:14px;min-width:130px;text-align:center"></div>
+        <button class="btn btn-ghost btn-sm" onclick="nextMonth();renderMedicos()">›</button>
+      </div>
+      <button class="btn btn-primary" onclick="abrirModalNuevoMedico()">+ Agregar</button>
+    </div>
+  </div>
+  <div class="medicos-grid" id="medicos-grid"></div>
+</div>
+
+<!-- ═══ RESUMEN ═══ -->
+<div class="view" id="view-resumen">
+  <div class="sec-header">
+    <div>
+      <div class="sec-title">Resumen del mes</div>
+      <div class="sec-sub" id="res-sub"></div>
+    </div>
+    <div class="flex-gap">
+      <div class="month-nav">
+        <button class="btn btn-ghost btn-sm" onclick="prevMonth();renderResumen()">‹</button>
+        <div class="month-label" id="res-month" style="font-size:14px;min-width:130px"></div>
+        <button class="btn btn-ghost btn-sm" onclick="nextMonth();renderResumen()">›</button>
+      </div>
+      <button class="btn btn-ghost" onclick="exportCSV()">⬇ CSV</button>
+    </div>
+  </div>
+  <div class="card">
+    <table class="res-table">
+      <thead><tr>
+        <th>Obstétrica</th><th>Guardias</th><th>Consultorios</th><th>Horas / 192hs</th><th>%</th><th>Disponibilidad</th>
+      </tr></thead>
+      <tbody id="res-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ CONFIG ═══ -->
+<div class="view" id="view-config">
+  <div class="sec-header">
+    <div class="sec-title">Configuración</div>
+    <button class="btn btn-success" onclick="guardarConfig()">Guardar</button>
+  </div>
+  <div class="cfg-grid">
+    <div class="cfg-card">
+      <h3>⚙️ Reglas generales</h3>
+      <div class="form-group mt-8">
+        <label>Días mínimos de descanso entre guardias</label>
+        <input type="number" id="cfg-descanso" min="0" max="14" value="3">
+      </div>
+      <div class="form-group mt-8">
+        <label>Máximo de fines de semana por obstétrica/mes</label>
+        <input type="number" id="cfg-max-finde" min="1" max="8" value="2">
+      </div>
+      <div class="form-group mt-8">
+        <label>Mínimo de obstétricas por guardia</label>
+        <input type="number" id="cfg-min-dia" min="1" max="10" value="3">
+      </div>
+      <div class="form-group mt-8">
+        <label>Máximo de obstétricas por guardia</label>
+        <input type="number" id="cfg-max-dia" min="1" max="10" value="4">
+      </div>
+      <div class="form-group mt-8">
+        <label>Máximo de guardias por obstétrica/mes (global)</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="number" id="cfg-max-guard-global" min="1" max="31" value="8" style="flex:1">
+          <button class="btn btn-warn btn-sm" onclick="aplicarGlobalATodos()" title="Borra el valor individual de todos los médicos y usa este global">Aplicar a todos</button>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:3px">Si un médico tiene valor individual, ese tiene prioridad. "Aplicar a todos" borra los valores individuales del mes actual.</div>
+      </div>
+      <div class="form-group mt-8">
+        <label>Equivalencia: 1 guardia = N consultorios</label>
+        <input type="number" id="cfg-equiv" min="1" max="10" value="4">
+      </div>
+    </div>
+    <div class="cfg-card">
+      <h3>💾 Datos</h3>
+      <div class="flex-gap mt-8">
+        <button class="btn btn-ghost" onclick="exportarJSON()">⬇ Backup</button>
+        <button class="btn btn-ghost" onclick="document.getElementById('imp-file').click()">⬆ Restaurar</button>
+        <input type="file" id="imp-file" accept=".json" style="display:none" onchange="importarJSON(event)">
+      </div>
+      <div class="divider"></div>
+      <button class="btn btn-danger btn-sm" onclick="resetTodo()">⚠ Borrar todo</button>
+    </div>
+    <div class="cfg-card">
+      <h3>ℹ️ Tipos de disponibilidad</h3>
+      <div class="text-sm" style="line-height:1.7">
+        <b>Guardia</b> → puede hacer guardia esos días<br>
+        <b>Consultorio</b> → no hace guardia (turno fijo)<br>
+        <b>No disponible</b> → ausente (vacaciones, licencia…)<br><br>
+        Cada bloque puede ser:<br>
+        • Todo el mes<br>
+        • Rango de fechas<br>
+        • Días sueltos<br>
+        • Días de semana (ej: todos los lunes)<br>
+        • Combinaciones de los anteriores
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: EDITAR DÍA ═══ -->
+<div class="overlay" id="modal-dia">
+  <div class="modal">
+    <div class="modal-title">
+      Asignar guardia
+      <button class="icon-btn" onclick="cerrarModalDia()">✕</button>
+    </div>
+    <div class="modal-sub" id="dia-label"></div>
+    <div id="dia-alerts"></div>
+    <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--text2)">Obstétricas disponibles para guardia:</div>
+    <div id="dia-selector"></div>
+    <div class="flex-gap mt-16">
+      <button class="btn btn-success" onclick="guardarDia()">Guardar</button>
+      <button class="btn btn-ghost" onclick="cerrarModalDia()">Cancelar</button>
+      <button class="btn btn-danger btn-sm" style="margin-left:auto" onclick="limpiarDia()">Limpiar día</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: MÉDICO ═══ -->
+<div class="overlay" id="modal-medico">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-title">
+      <span id="modal-med-title">Médico</span>
+      <button class="icon-btn" onclick="cerrarModalMedico()">✕</button>
+    </div>
+
+    <!-- Datos básicos -->
+    <div class="form-row">
+      <div class="form-group" style="flex:2">
+        <label>Nombre</label>
+        <input type="text" id="med-nombre" placeholder="Apellido, Nombre">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label>Estado</label>
+        <select id="med-estado">
+          <option value="activo">Activo</option>
+          <option value="inactivo">Inactivo</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row mt-8">
+      <div class="form-group" style="flex:1">
+        <label>Máx. guardias este mes <span style="font-weight:400;font-size:10px;text-transform:none;color:var(--text3)" id="med-max-guard-hint">(global: 8)</span></label>
+        <input type="number" id="med-max-guard" min="0" max="31" placeholder="Global">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label>Máx. fines de semana este mes</label>
+        <input type="number" id="med-max-finde" min="0" max="8" placeholder="Global">
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Disponibilidad mensual -->
+    <div style="font-size:13px;font-weight:700;margin-bottom:8px">
+      📋 Disponibilidad — <span id="modal-mes-label" style="color:var(--accent)"></span>
+    </div>
+    <div class="alert alert-info">
+      ℹ️ Agregá bloques para indicar qué puede hacer cada médico. Sin bloques = disponible para guardia todo el mes.
+    </div>
+
+    <div class="disp-list" id="disp-lista"></div>
+
+    <!-- Formulario agregar bloque -->
+    <div class="disp-mes-panel">
+      <h4>+ Agregar bloque de disponibilidad</h4>
+      <div class="form-row">
+        <div class="form-group" style="min-width:130px">
+          <label>Tipo</label>
+          <select id="disp-tipo" onchange="onTipoChange()">
+            <option value="guardia">Guardia</option>
+            <option value="consultorio">Consultorio</option>
+              <option value="nodis">No disponible</option>
+          </select>
+        </div>
+        <div class="form-group" style="min-width:140px" id="disp-horario-wrap">
+          <label>Horario (opcional)</label>
+          <input type="text" id="disp-horario" placeholder="ej: 08:00-16:00">
+        </div>
+      </div>
+      <div class="form-row mt-8">
+        <div class="form-group" style="min-width:130px">
+          <label>Alcance</label>
+          <select id="disp-alcance" onchange="onAlcanceChange()">
+            <option value="mes">Todo el mes</option>
+            <option value="rango">Rango de fechas</option>
+            <option value="dias_sueltos">Días sueltos</option>
+            <option value="habiles">Días hábiles (Lun-Vie)</option>
+            <option value="dias_semana">Días de semana</option>
+            <option value="combinado">Rango + días semana</option>
+          </select>
+        </div>
+        <!-- Rango -->
+        <div id="wrap-rango" class="form-row" style="display:none;flex:1">
+          <div class="form-group">
+            <label>Desde</label>
+            <input type="date" id="disp-desde">
+          </div>
+          <div class="form-group">
+            <label>Hasta</label>
+            <input type="date" id="disp-hasta">
+          </div>
+        </div>
+        <!-- Días sueltos -->
+        <div id="wrap-sueltos" style="display:none;flex:1">
+          <div class="form-group">
+            <label>Días del mes (separados por coma, ej: 3,7,15)</label>
+            <input type="text" id="disp-sueltos" placeholder="3,7,15,22">
+          </div>
+        </div>
+        <!-- Días de semana (también se muestra para rango) -->
+        <div id="wrap-semana" style="display:none;flex:1">
+          <div class="form-group">
+            <label>Días de la semana <span style="font-weight:400;text-transform:none;font-size:10px;color:var(--text3)">(opcional si es rango)</span></label>
+            <div class="flex-gap" style="margin-top:4px" id="dias-semana-checks">
+              <label style="text-transform:none;font-size:12px;display:flex;align-items:center;gap:3px"><input type="checkbox" value="0"> Dom</label>
+              <label style="text-transform:none;font-size:12px;display:flex;align-items:center;gap:3px"><input type="checkbox" value="1"> Lun</label>
+              <label style="text-transform:none;font-size:12px;display:flex;align-items:center;gap:3px"><input type="checkbox" value="2"> Mar</label>
+              <label style="text-transform:none;font-size:12px;display:flex;align-items:center;gap:3px"><input type="checkbox" value="3"> Mié</label>
+              <label style="text-transform:none;font-size:12px;display:flex;align-items:center;gap:3px"><input type="checkbox" value="4"> Jue</label>
+              <label style="text-transform:none;font-size:12px;display:flex;align-items:center;gap:3px"><input type="checkbox" value="5"> Vie</label>
+              <label style="text-transform:none;font-size:12px;display:flex;align-items:center;gap:3px"><input type="checkbox" value="6"> Sáb</label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Combinado: rango + días semana -->
+      <div id="wrap-combinado" style="display:none" class="mt-8">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Desde</label>
+            <input type="date" id="disp-desde2">
+          </div>
+          <div class="form-group">
+            <label>Hasta</label>
+            <input type="date" id="disp-hasta2">
+          </div>
+        </div>
+        <div class="form-group mt-8">
+          <label>Solo estos días de la semana</label>
+          <div class="flex-gap" style="margin-top:4px" id="dias-semana-checks2">
+            <label style="text-transform:none;font-size:12px;display:flex;align-items:center;gap:3px"><input type="checkbox" value="0"> Dom</label>
+            <label style="text-transform:none;font-size:12px;display:flex;align-items:center;gap:3px"><input type="checkbox" value="1"> Lun</label>
+            <label style="text-transform:none;font-size:12px;display:flex;align-items:center;gap:3px"><input type="checkbox" value="2"> Mar</label>
+            <label style="text-transform:none;font-size:12px;display:flex;align-items:center;gap:3px"><input type="checkbox" value="3"> Mié</label>
+            <label style="text-transform:none;font-size:12px;display:flex;align-items:center;gap:3px"><input type="checkbox" value="4"> Jue</label>
+            <label style="text-transform:none;font-size:12px;display:flex;align-items:center;gap:3px"><input type="checkbox" value="5"> Vie</label>
+            <label style="text-transform:none;font-size:12px;display:flex;align-items:center;gap:3px"><input type="checkbox" value="6"> Sáb</label>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-warn btn-sm mt-8" onclick="agregarBloque()">+ Agregar bloque</button>
+    </div>
+
+    <div class="flex-gap mt-12">
+      <button class="btn btn-success" onclick="guardarMedico()">Guardar</button>
+      <button class="btn btn-ghost" onclick="cerrarModalMedico()">Cancelar</button>
+      <button class="btn btn-danger btn-sm" style="margin-left:auto" onclick="eliminarMedico()">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  ESTADO
+// ═══════════════════════════════════════════════════════════
+let state = {
+  medicos: [],   // { id, nombre, estado, disponibilidad:{mesKey:{maxGuard,maxFinde,bloques:[]}}, guardias:{mesKey:{d:[ids]}} }
+  config: { descanso: 3, maxFinde: 2, equiv: 4 }
+};
+
+let curY = new Date().getFullYear();
+let curM = new Date().getMonth() + 1;
+let modalDiaActual = null;
+let filtroMedicoId = null;
+let editMedicoId = null;
+let editBloques = [];
+
+// ═══════════════════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════════════════
+const COLORES = ['#2563eb','#0d9488','#d97706','#dc2626','#7c3aed','#db2777','#0891b2','#65a30d','#ea580c','#0284c7','#9333ea','#c026d3','#059669','#d97706','#b91c1c','#4f46e5','#0f766e','#a16207','#be185d','#6d28d9'];
+const NOM_MES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const NOM_DIA = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+function mesKey(y,m){ return `${y}-${String(m).padStart(2,'0')}`; }
+function diaKey(y,m,d){ return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+function diasEnMes(y,m){ return new Date(y,m,0).getDate(); }
+function primerDia(y,m){ return new Date(y,m-1,1).getDay(); }
+function esFinde(y,m,d){ const dow=new Date(y,m-1,d).getDay(); return dow===0||dow===6; }
+function iniciales(n){ return n.split(' ').filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join(''); }
+function getMedico(id){ return state.medicos.find(m=>m.id===id); }
+function colorMed(id){ const i=state.medicos.findIndex(m=>m.id===id); return COLORES[i>=0?i%COLORES.length:0]; }
+function uuid(){ return Math.random().toString(36).slice(2,9); }
+
+// ═══════════════════════════════════════════════════════════
+//  PERSISTENCIA
+// ═══════════════════════════════════════════════════════════
+function save(){ localStorage.setItem('gh_v2', JSON.stringify(state)); }
+function load(){
+  const r = localStorage.getItem('gh_v2');
+  if(r){ try{ state=JSON.parse(r); }catch(e){} }
+  if(!state.medicos) state.medicos=[];
+  if(!state.config) state.config={};
+  if(state.config.descanso===undefined) state.config.descanso=3;
+  if(state.config.maxFinde===undefined) state.config.maxFinde=2;
+  if(state.config.equiv===undefined) state.config.equiv=4;
+  if(state.config.maxGuardGlobal===undefined) state.config.maxGuardGlobal=8;
+  if(state.config.minPorDia===undefined) state.config.minPorDia=3;
+  if(state.config.maxPorDia===undefined) state.config.maxPorDia=4;
+  if(!state.config.minPorDia) state.config.minPorDia=3;
+  if(!state.config.maxPorDia) state.config.maxPorDia=4;
+  if(!state.config.equiv) state.config.equiv=4;
+
+  // Precargar médicos reales si está vacío
+  if(state.medicos.length===0){
+    const nombres=[
+      ['Ferri','guardia'],['Funes','guardia'],['Rolando','guardia'],['Calzetti','guardia'],
+      ['Oro','guardia'],['Miranda','guardia'],['Moyano','guardia'],['Chilaca','guardia'],
+      ['Alcaraz','guardia'],['Lucero','guardia'],['Fernandez','guardia'],['Lacerda','guardia'],
+      ['Moreira','guardia'],['Garcia','guardia'],['Valencia','guardia'],['Truglio','guardia'],
+      ['Di Gennaro','consultorio'],['Lopez','consultorio'],['Guzman','consultorio']
+    ];
+    nombres.forEach(([n,_])=>{
+      state.medicos.push({id:uuid(),nombre:n,estado:'activo',disponibilidad:{},guardias:{}});
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DISPONIBILIDAD: helpers
+// ═══════════════════════════════════════════════════════════
+function getDispMes(medicoId, y, m){
+  const med = getMedico(medicoId);
+  if(!med) return null;
+  const mk = mesKey(y,m);
+  if(!med.disponibilidad) med.disponibilidad={};
+  if(!med.disponibilidad[mk]) med.disponibilidad[mk]={ maxGuard:null, maxFinde:null, bloques:[] };
+  return med.disponibilidad[mk];
+}
+
+// Dado un médico y una fecha, devuelve el tipo efectivo:
+// 'guardia' | 'consultorio' | 'tarde' | 'nodis' | null (sin bloque = guardia por defecto)
+function tipoEnFecha(medicoId, y, m, d){
+  const disp = getDispMes(medicoId, y, m);
+  if(!disp || !disp.bloques || disp.bloques.length===0) return 'guardia'; // sin bloques = todo guardia
+  const dateStr = diaKey(y,m,d);
+  const dow = new Date(y,m-1,d).getDay();
+
+  // Prioridad: consultorio/tarde/nodis > guardia
+  // Si algún bloque restrictivo aplica ese día, gana sobre guardia.
+  // Entre restrictivos, el último gana. Entre guardias, el último gana.
+  // Pero un restrictivo siempre gana sobre un guardia.
+
+  const PRIORIDAD = { nodis: 3, consultorio: 2, tarde: 2, guardia: 1 };
+
+  let resultado = null; // null = sin ningún bloque aplicable
+  let maxPrio = 0;
+
+  for(const b of disp.bloques){
+    if(bloqueAplica(b, y, m, d, dateStr, dow)){
+      const prio = PRIORIDAD[b.tipo] || 1;
+      if(prio > maxPrio || (prio === maxPrio)){
+        // Si igual prioridad, el último gana (para casos de múltiples guardias)
+        // Si mayor prioridad, siempre reemplaza
+        if(prio >= maxPrio){
+          resultado = b.tipo;
+          maxPrio = prio;
+        }
+      }
+    }
+  }
+
+  // Si no hubo ningún bloque aplicable, depende de si tiene bloques que cubran el mes
+  if(resultado === null){
+    // Si tiene bloques pero ninguno aplica hoy → ese día no está definido
+    // Lo tratamos como no disponible para guardia (el médico tiene un esquema específico)
+    return 'libre'; // no hace guardia pero tampoco consultorio
+  }
+  return resultado;
+}
+
+function bloqueAplica(b, y, m, d, dateStr, dow){
+  switch(b.alcance){
+    case 'mes':
+      return true;
+    case 'rango':
+      return dateStr >= b.desde && dateStr <= b.hasta;
+    case 'dias_sueltos':
+      return (b.dias||[]).includes(d);
+    case 'habiles':
+      return dow >= 1 && dow <= 5;
+    case 'dias_semana':
+      return (b.dowList||[]).includes(dow);
+    case 'combinado':
+      return dateStr >= b.desde && dateStr <= b.hasta && (b.dowList||[]).includes(dow);
+    default:
+      return false;
+  }
+}
+
+function tieneConsultorioEsteMes(medicoId, y, m){
+  // Solo excluir del mes entero si NO tiene ningún día disponible para guardia
+  const total = diasEnMes(y, m);
+  for(let d=1; d<=total; d++){
+    if(tipoEnFecha(medicoId, y, m, d) === 'guardia') return false; // tiene al menos un día de guardia
+  }
+  // Si llegamos acá, no tiene ningún día de guardia este mes
+  const disp = getDispMes(medicoId, y, m);
+  if(!disp || !disp.bloques || !disp.bloques.length) return false; // sin bloques = guardia todo el mes
+  return true; // tiene bloques pero ninguno es guardia → excluir
+}
+
+function horasConsultorioDia(medicoId, y, m){
+  const disp = getDispMes(medicoId, y, m);
+  if(!disp || !disp.bloques || !disp.bloques.length) return 6;
+  const cons = disp.bloques.filter(b=>b.tipo==='consultorio'||b.tipo==='tarde');
+  if(!cons.length) return 6;
+  return cons.some(b=>b.alcance==='mes'||b.alcance==='habiles') ? 8 : 6;
+}
+
+function puedeHacerGuardia(medicoId, y, m, d){
+  if(getMedico(medicoId)?.estado === 'inactivo') return false;
+  if(tieneConsultorioEsteMes(medicoId, y, m)) return false;
+  const t = tipoEnFecha(medicoId, y, m, d);
+  return t === 'guardia';
+}
+
+function tipoEnFechaExt(m, d){
+  if(d < 1){
+    let pm=curM-1, py=curY; if(pm<1){pm=12;py--;}
+    return tipoEnFecha(m.id, py, pm, diasEnMes(py,pm)+d);
+  }
+  if(d > diasEnMes(curY,curM)){
+    let nm=curM+1, ny=curY; if(nm>12){nm=1;ny++;}
+    return tipoEnFecha(m.id, ny, nm, d-diasEnMes(curY,curM));
+  }
+  return tipoEnFecha(m.id, curY, curM, d);
+}
+
+function esOcupado(tipo){ return tipo==='consultorio'||tipo==='tarde'||tipo==='nodis'; }
+
+// Descripción legible de un bloque
+function descBloque(b, y, m){
+  const tipoLabel = {guardia:'Guardia',consultorio:'Consultorio',tarde:'Tarde',nodis:'No disponible'};
+  let alcDesc = '';
+  switch(b.alcance){
+    case 'mes': alcDesc = 'Todo el mes'; break;
+    case 'rango': alcDesc = `${b.desde} → ${b.hasta}`; break;
+    case 'habiles': alcDesc = 'Días hábiles (Lun-Vie)'; break;
+    case 'dias_sueltos': alcDesc = `Días: ${(b.dias||[]).join(', ')}`; break;
+    case 'dias_semana': alcDesc = `${(b.dowList||[]).map(i=>NOM_DIA[i]).join(', ')}`; break;
+    case 'combinado': alcDesc = `${b.desde} → ${b.hasta} · ${(b.dowList||[]).map(i=>NOM_DIA[i]).join(', ')}`; break;
+  }
+  const hor = b.horario ? ` (${b.horario})` : '';
+  return `${tipoLabel[b.tipo]||b.tipo}${hor} · ${alcDesc}`;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  GUARDIAS: helpers
+// ═══════════════════════════════════════════════════════════
+function getGuardiasMes(y, m){
+  // guardias stored in state as state.guardias[mesKey] = {d: [ids]}
+  if(!state.guardias) state.guardias={};
+  const mk = mesKey(y,m);
+  if(!state.guardias[mk]) state.guardias[mk]={};
+  return state.guardias[mk];
+}
+
+function countGuardiasMes(medicoId, y, m){
+  const g = getGuardiasMes(y,m);
+  let c=0;
+  for(const d in g){ if((g[d]||[]).includes(medicoId)) c++; }
+  return c;
+}
+
+function countFindesMes(medicoId, y, m){
+  const g = getGuardiasMes(y,m);
+  let c=0;
+  for(const d in g){
+    if((g[d]||[]).includes(medicoId) && esFinde(y,m,parseInt(d))) c++;
+  }
+  return c;
+}
+
+function ultimaGuardiaAntes(medicoId, y, m, dia){
+  // Returns last day in current or previous month with guardia, as offset from dia
+  const g = getGuardiasMes(y,m);
+  for(let d=dia-1;d>=1;d--){
+    if((g[String(d)]||[]).includes(medicoId)) return dia-d;
+  }
+  // prev month
+  let pm=m-1,py=y; if(pm<1){pm=12;py--;}
+  const pg = getGuardiasMes(py,pm);
+  const pd = diasEnMes(py,pm);
+  for(let d=pd;d>=1;d--){
+    if((pg[String(d)]||[]).includes(medicoId)) return (dia-1)+(pd-d)+1;
+  }
+  return 999;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  VISTAS
+// ═══════════════════════════════════════════════════════════
+function showView(name, btn){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(name==='calendario') renderCalendario();
+  if(name==='medicos') renderMedicos();
+  if(name==='resumen') renderResumen();
+  if(name==='config') renderConfig();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CALENDARIO
+// ═══════════════════════════════════════════════════════════
+function prevMonth(){ curM--; if(curM<1){curM=12;curY--;} renderCalendario(); }
+function nextMonth(){ curM++; if(curM>12){curM=1;curY++;} renderCalendario(); }
+
+function verMedicoEnCalendario(medicoId){
+  filtroMedicoId = medicoId;
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('view-calendario').classList.add('active');
+  document.querySelector('.nav-btn').classList.add('active');
+  renderCalendario();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function limpiarFiltro(){
+  filtroMedicoId = null;
+  renderCalendario();
+}
+
+function renderCalendario(){
+  document.getElementById('month-label').textContent = `${NOM_MES[curM-1]} ${curY}`;
+  const grid = document.getElementById('cal-grid');
+  const total = diasEnMes(curY,curM);
+  const start = primerDia(curY,curM);
+  const g = getGuardiasMes(curY,curM);
+  const hoy = new Date();
+
+  // Headers
+  grid.innerHTML = NOM_DIA.map(d=>`<div class="cal-head">${d}</div>`).join('');
+
+  // Empty cells
+  for(let i=0;i<start;i++) grid.innerHTML += `<div class="cal-cell empty"></div>`;
+
+  let diasVacios = 0;
+
+  // Filtro banner
+  const filtBanner = document.getElementById('filtro-banner');
+  if(filtroMedicoId){
+    const fm=getMedico(filtroMedicoId);
+    const color=colorMed(filtroMedicoId);
+    if(filtBanner) filtBanner.innerHTML=`<div style="display:flex;align-items:center;gap:10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:var(--rs);padding:8px 12px;margin-bottom:10px;font-size:13px"><div style="width:10px;height:10px;border-radius:50%;background:${color}"></div><span>Mostrando: <b>${fm?.nombre}</b></span><button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="limpiarFiltro()">✕ Ver todos</button></div>`;
+  } else {
+    if(filtBanner) filtBanner.innerHTML='';
+  }
+
+  for(let d=1;d<=total;d++){
+    const asig = g[String(d)]||[];
+    const esHoy = hoy.getFullYear()===curY&&hoy.getMonth()+1===curM&&hoy.getDate()===d;
+
+    if(filtroMedicoId){
+      const tipo = tipoEnFecha(filtroMedicoId,curY,curM,d);
+      const enGuardia = asig.includes(filtroMedicoId);
+      const color = colorMed(filtroMedicoId);
+      let cls='cal-cell'; if(esHoy) cls+=' today';
+      let chip='';
+      if(enGuardia) chip=`<div class="chip" style="background:${color}22;color:${color};font-weight:700">🏥 Guardia</div>`;
+      else if(tipo==='consultorio') chip=`<div class="chip cons">📋 Consultorio</div>`;
+      else if(tipo==='tarde') chip=`<div class="chip cons" style="background:#d1fae5;color:#065f46">🕐 Tarde</div>`;
+      else if(tipo==='nodis') chip=`<div class="chip nodis">🚫 No disp.</div>`;
+      else if(tipo==='libre') chip=`<div class="cal-empty-msg">Libre</div>`;
+      else chip=`<div class="cal-empty-msg">Libre</div>`;
+      grid.innerHTML+=`<div class="${cls}" onclick="abrirModalDia(${d})"><div class="cal-day">${d}</div><div class="cal-chips">${chip}</div></div>`;
+    } else {
+      const vacio = asig.length===0;
+      if(vacio) diasVacios++;
+      let cls='cal-cell'; if(esHoy) cls+=' today'; if(vacio) cls+=' sin-cubrir';
+      let chips = asig.map(id=>{
+        const med=getMedico(id); if(!med) return '';
+        const color=colorMed(id);
+        return `<div class="chip" style="background:${color}22;color:${color}">${med.nombre}</div>`;
+      }).join('');
+      if(!asig.length) chips=`<div class="cal-empty-msg">Sin asignar</div>`;
+      grid.innerHTML+=`<div class="${cls}" onclick="abrirModalDia(${d})"><div class="cal-day">${d}</div><div class="cal-chips">${chips}</div></div>`;
+    }
+  }
+
+  const alerts = document.getElementById('cal-alerts');
+  alerts.innerHTML = diasVacios > 0
+    ? `<div class="alert alert-warn" style="margin-bottom:12px">⚠️ ${diasVacios} día(s) sin médicos asignados este mes.</div>`
+    : '';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  MODAL DÍA
+// ═══════════════════════════════════════════════════════════
+function abrirModalDia(d){
+  modalDiaActual = { y:curY, m:curM, d };
+  const g = getGuardiasMes(curY,curM);
+  const asig = g[String(d)]||[];
+  const dow = new Date(curY,curM-1,d).getDay();
+  const nomDow = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'][dow];
+
+  document.getElementById('dia-label').textContent = `${nomDow} ${d} de ${NOM_MES[curM-1]} ${curY}`;
+
+  const disponibles = state.medicos.filter(m=>m.estado!=='inactivo');
+
+  let html = '';
+  disponibles.forEach(m=>{
+    const sel = asig.includes(m.id);
+    const tipo = tipoEnFecha(m.id, curY, curM, d);
+    const puedeG = tipo==='guardia';
+    const color = colorMed(m.id);
+    const countG = countGuardiasMes(m.id, curY, curM);
+    const disp = getDispMes(m.id, curY, curM);
+    const maxG = disp?.maxGuard ?? state.config.maxGuardGlobal ?? 8;
+
+    let tag = '';
+    if(tipo==='consultorio') tag=`<span class="badge badge-cons">Consultorio</span>`;
+    else if(tipo==='tarde') tag=`<span class="badge badge-tarde">Tarde</span>`;
+    else if(tipo==='nodis') tag=`<span class="badge badge-nodis">No disp.</span>`;
+    else tag=`<span class="badge badge-guard">Guardia</span>`;
+
+    const bloq = !puedeG && !sel;
+
+    html+=`
+    <div class="med-sel-row ${sel?'selected':''} ${bloq?'bloq':''}" onclick="toggleMedDia('${m.id}',this)">
+      <div class="chk">${sel?'✓':''}</div>
+      <div style="width:28px;height:28px;border-radius:50%;background:${color}22;color:${color};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0">${iniciales(m.nombre)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:13px">${m.nombre}</div>
+        <div style="font-size:11px;color:var(--text2)">${countG}/${maxG} guardias este mes</div>
+      </div>
+      ${tag}
+    </div>`;
+  });
+
+  document.getElementById('dia-selector').innerHTML = html || '<div class="text-sm">No hay médicos activos.</div>';
+  document.getElementById('dia-alerts').innerHTML = '';
+  document.getElementById('modal-dia').classList.add('open');
+}
+
+function toggleMedDia(id, el){
+  el.classList.toggle('selected');
+  el.querySelector('.chk').textContent = el.classList.contains('selected') ? '✓' : '';
+}
+
+function guardarDia(){
+  const {y,m,d} = modalDiaActual;
+  const g = getGuardiasMes(y,m);
+  const sel = [];
+  document.querySelectorAll('#dia-selector .med-sel-row.selected').forEach(el=>{
+    const match = el.getAttribute('onclick').match(/'([^']+)'/);
+    if(match) sel.push(match[1]);
+  });
+  g[String(d)] = sel;
+  save();
+  cerrarModalDia();
+  renderCalendario();
+}
+
+function limpiarDia(){
+  const {y,m,d} = modalDiaActual;
+  const g = getGuardiasMes(y,m);
+  g[String(d)] = [];
+  save();
+  cerrarModalDia();
+  renderCalendario();
+}
+
+function cerrarModalDia(){
+  document.getElementById('modal-dia').classList.remove('open');
+  modalDiaActual=null;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  MÉDICOS
+// ═══════════════════════════════════════════════════════════
+function getTipoInfo(tipo){
+  if(tipo==='consultorio') return {label:'Consultorio',cls:'act-chip-cons'};
+  if(tipo==='tarde')       return {label:'Tarde',cls:'act-chip-tarde'};
+  if(tipo==='nodis')       return {label:'No disponible',cls:'act-chip-nodis'};
+  if(tipo==='libre')       return null; // no mostrar días libres
+  return null;
+}
+
+function renderActPanel(){
+  const total = diasEnMes(curY,curM);
+  const todos = state.medicos.filter(m=>m.estado!=='inactivo');
+  const mesNom = `${NOM_MES[curM-1]} ${curY}`;
+
+  // Para cada médico, mapear sus días con actividad especial
+  const mapMedico = {}; // id -> [{d, tipo}]
+  todos.forEach(m=>{
+    const dias = [];
+    for(let d=1;d<=total;d++){
+      const tipo = tipoEnFecha(m.id,curY,curM,d);
+      const info = getTipoInfo(tipo);
+      if(info) dias.push({d, tipo});
+    }
+    mapMedico[m.id] = dias;
+  });
+
+  // Detectar patrones: todo el mes, días hábiles, fines de semana, rango continuo
+  function clasificar(m){
+    const dias = mapMedico[m.id];
+    if(!dias.length) return null;
+
+    const tipos = [...new Set(dias.map(x=>x.tipo))];
+    const tipo = tipos.length===1 ? tipos[0] : null; // tipo único
+
+    if(tipo){
+      // ¿Todo el mes?
+      if(dias.length===total) return {scope:'mes', tipo, dias};
+
+      // ¿Días hábiles (lun-vie)?
+      const habiles = [];
+      for(let d=1;d<=total;d++){ const w=new Date(curY,curM-1,d).getDay(); if(w>=1&&w<=5) habiles.push(d); }
+      if(dias.length===habiles.length && dias.every((x,i)=>x.d===habiles[i]))
+        return {scope:'habiles', tipo, dias};
+
+      // ¿Fines de semana?
+      const findes = [];
+      for(let d=1;d<=total;d++){ const w=new Date(curY,curM-1,d).getDay(); if(w===0||w===6) findes.push(d); }
+      if(dias.length===findes.length && dias.every((x,i)=>x.d===findes[i]))
+        return {scope:'finde', tipo, dias};
+
+      // ¿Rango continuo?
+      const esContiguo = dias.every((x,i)=> i===0 || x.d===dias[i-1].d+1);
+      if(esContiguo && dias.length>=3)
+        return {scope:'rango', tipo, desde:dias[0].d, hasta:dias[dias.length-1].d, dias};
+    }
+
+    // Detectar rangos por tipo dentro de los días
+    const rangos = [];
+    let i=0;
+    while(i<dias.length){
+      let j=i;
+      while(j+1<dias.length && dias[j+1].d===dias[j].d+1 && dias[j+1].tipo===dias[j].tipo) j++;
+      const len = j-i+1;
+      if(len>=3) rangos.push({tipo:dias[i].tipo, desde:dias[i].d, hasta:dias[j].d});
+      else for(let k=i;k<=j;k++) rangos.push({tipo:dias[k].tipo, desde:dias[k].d, hasta:dias[k].d});
+      i=j+1;
+    }
+    return {scope:'variable', rangos, dias};
+  }
+
+  const clasificados = todos.map(m=>({m, cls:clasificar(m)})).filter(x=>x.cls);
+
+  // Separar en: resumen (fijo/rango largo) y variable (días sueltos)
+  const resumen = clasificados.filter(x=>x.cls.scope!=='variable');
+  const variable = clasificados.filter(x=>x.cls.scope==='variable');
+
+  let html='';
+  let hayAlgo = clasificados.length>0;
+
+  // ── Sección 1: actividad fija / rango ──
+  if(resumen.length){
+    html+=`<div style="padding:10px 14px;background:#f8fafc;border-top:1px solid var(--border)">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Resumen de actividades</div>
+      <div style="display:flex;flex-direction:column;gap:6px">`;
+
+    resumen.forEach(({m,cls})=>{
+      const info = getTipoInfo(cls.tipo);
+      if(!info) return;
+      const scopeTxt = {
+        mes:    `Todo ${mesNom}`,
+        habiles:'Días hábiles (Lun-Vie)',
+        finde:  'Fines de semana',
+        rango:  `Del ${cls.desde} al ${cls.hasta}`
+      }[cls.scope]||'';
+      html+=`<div style="display:flex;align-items:center;gap:8px">
+        <span class="act-chip ${info.cls}" style="font-size:11px;padding:3px 10px"><b>${m.nombre}</b> · ${info.label}</span>
+        <span style="font-size:11px;color:var(--text2)">${scopeTxt}</span>
+      </div>`;
+    });
+    html+=`</div></div>`;
+  }
+
+  // ── Sección 2: variable → detectar sub-rangos y mostrarlos resumidos ──
+  if(variable.length){
+    // Agrupar sub-rangos de cada médico en líneas
+    const lineasMedico = variable.map(({m,cls})=>{
+      const partes = cls.rangos.map(r=>{
+        const info = getTipoInfo(r.tipo);
+        if(!info) return null;
+        const rng = r.desde===r.hasta ? `día ${r.desde}` : `del ${r.desde} al ${r.hasta}`;
+        return `<span class="act-chip ${info.cls}" style="font-size:11px;padding:3px 9px"><b>${m.nombre}</b> · ${info.label} · ${rng}</span>`;
+      }).filter(Boolean);
+      return partes.length ? partes.join(' ') : null;
+    }).filter(Boolean);
+
+    if(lineasMedico.length){
+      html+=`<div style="padding:10px 14px;border-top:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Actividad por período</div>
+        <div style="display:flex;flex-direction:column;gap:6px">${lineasMedico.map(l=>`<div style="display:flex;flex-wrap:wrap;gap:4px">${l}</div>`).join('')}</div>
+      </div>`;
+    }
+  }
+
+  const panel = document.getElementById('act-panel');
+  const body = document.getElementById('act-panel-body');
+  body.innerHTML = hayAlgo ? html : '<div class="act-empty">No hay médicos con actividades especiales este mes.</div>';
+  panel.style.display='block';
+  panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+let dragSrcId = null;
+
+function dragStart(e){
+  dragSrcId = e.currentTarget.dataset.id;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function dragOver(e){
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.classList.add('drag-over');
+}
+
+function dragLeave(e){
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function dragDrop(e){
+  e.preventDefault();
+  const targetId = e.currentTarget.dataset.id;
+  if(!dragSrcId || dragSrcId === targetId) return;
+  // Reorder in state.medicos
+  const srcIdx = state.medicos.findIndex(m=>m.id===dragSrcId);
+  const tgtIdx = state.medicos.findIndex(m=>m.id===targetId);
+  if(srcIdx<0||tgtIdx<0) return;
+  const [removed] = state.medicos.splice(srcIdx,1);
+  state.medicos.splice(tgtIdx,0,removed);
+  save();
+  renderMedicos();
+}
+
+function dragEnd(e){
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.medico-card').forEach(c=>c.classList.remove('drag-over'));
+  dragSrcId = null;
+}
+
+function renderMedicos(){
+  document.getElementById('med-count').textContent = state.medicos.length;
+  const ml = document.getElementById('med-month-label');
+  if(ml) ml.textContent = `${NOM_MES[curM-1]} ${curY}`;
+  const grid = document.getElementById('medicos-grid');
+  if(!state.medicos.length){
+    grid.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><div class="icon">👩‍⚕️</div><p>Sin obstétricas. Agregá una.</p></div>`;
+    return;
+  }
+  grid.innerHTML = state.medicos.map((m,i)=>{
+    const color=COLORES[i%COLORES.length];
+    const disp = getDispMes(m.id, curY, curM);
+    const nBloques = disp?.bloques?.length||0;
+    const maxG = disp?.maxGuard ?? state.config.maxGuardGlobal ?? 8;
+    const countG = countGuardiasMes(m.id, curY, curM);
+    return `
+    <div class="medico-card ${m.estado==='inactivo'?'opacity-50':''}"
+         draggable="true"
+         data-id="${m.id}"
+         ondragstart="dragStart(event)"
+         ondragover="dragOver(event)"
+         ondragleave="dragLeave(event)"
+         ondrop="dragDrop(event)"
+         ondragend="dragEnd(event)">
+      <div class="drag-handle" title="Arrastrar para reordenar">⠿</div>
+      <div class="med-avatar" style="background:${color}22;color:${color}">${iniciales(m.nombre)}</div>
+      <div class="med-info" onclick="abrirModalMedico('${m.id}')" style="cursor:pointer;flex:1">
+        <div class="med-name">${m.nombre}</div>
+        <div class="med-sub">
+          <span>${countG}/${maxG} guardias</span>
+          ${nBloques?`<span style="color:var(--accent);font-size:10px;font-weight:600">📋 ${nBloques} bloque${nBloques>1?'s':''}</span>`:'<span style="color:var(--text3);font-size:10px">Sin bloques</span>'}
+          ${m.estado==='inactivo'?'<span style="color:var(--danger);font-size:10px">● Inactivo</span>':''}
+        </div>
+      </div>
+      <div onclick="abrirModalMedico('${m.id}')" style="cursor:pointer">✏️</div>
+    </div>`;
+  }).join('');
+}
+
+function abrirModalNuevoMedico(){
+  editMedicoId = null;
+  editBloques = [];
+  document.getElementById('med-nombre').value='';
+  document.getElementById('med-estado').value='activo';
+  const globalG2 = state.config.maxGuardGlobal||8;
+  document.getElementById('med-max-guard-hint').textContent=`(global: ${globalG2})`;
+  document.getElementById('med-max-guard').value='';
+  document.getElementById('med-max-finde').value='';
+  document.getElementById('modal-med-title').textContent='Nueva obstétrica';
+  document.getElementById('modal-mes-label').textContent=`${NOM_MES[curM-1]} ${curY}`;
+  renderBloques();
+  document.getElementById('modal-medico').classList.add('open');
+}
+
+function abrirModalMedico(id){
+  editMedicoId = id;
+  const m = getMedico(id);
+  const disp = getDispMes(id, curY, curM);
+  editBloques = JSON.parse(JSON.stringify(disp?.bloques||[]));
+
+  document.getElementById('med-nombre').value=m.nombre;
+  document.getElementById('med-estado').value=m.estado||'activo';
+  const globalG = state.config.maxGuardGlobal||8;
+  document.getElementById('med-max-guard-hint').textContent=`(global: ${globalG})`;
+  document.getElementById('med-max-guard').value=disp?.maxGuard!=null?disp.maxGuard:'';
+  document.getElementById('med-max-finde').value=disp?.maxFinde??'';
+  document.getElementById('modal-med-title').textContent=`Editar: ${m.nombre}`;
+  document.getElementById('modal-mes-label').textContent=`${NOM_MES[curM-1]} ${curY}`;
+  renderBloques();
+  document.getElementById('modal-medico').classList.add('open');
+}
+
+function cerrarModalMedico(){
+  document.getElementById('modal-medico').classList.remove('open');
+  editMedicoId=null; editBloques=[];
+}
+
+function renderBloques(){
+  const lista = document.getElementById('disp-lista');
+  if(!editBloques.length){
+    lista.innerHTML='<div class="text-sm" style="padding:6px 0;color:var(--text3)">Sin bloques → disponible para guardia todo el mes.</div>';
+    return;
+  }
+  lista.innerHTML = editBloques.map((b,i)=>{
+    const tagCls={guardia:'tag-g',consultorio:'tag-c',tarde:'tag-c',nodis:'tag-n'}[b.tipo]||'tag-g';
+    return `
+    <div class="disp-item">
+      <span class="${tagCls} tipo-badge">${descTipo(b.tipo)}</span>
+      <span class="detalle">${descAlcance(b)}</span>
+      <button class="icon-btn red" onclick="quitarBloque(${i})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function descTipo(t){
+  return {guardia:'Guardia',consultorio:'Consultorio',tarde:'Tarde',nodis:'No disponible'}[t]||t;
+}
+
+function descAlcance(b){
+  const hor = b.horario?` (${b.horario})`:'';
+  switch(b.alcance){
+    case 'mes': return 'Todo el mes'+hor;
+    case 'rango': return `${b.desde} → ${b.hasta}${hor}`;
+    case 'dias_sueltos': return `Días sueltos: ${(b.dias||[]).join(', ')}${hor}`;
+    case 'dias_semana': return `${(b.dowList||[]).map(i=>NOM_DIA[i]).join(', ')}${hor}`;
+    case 'combinado': return `${b.desde}→${b.hasta} · ${(b.dowList||[]).map(i=>NOM_DIA[i]).join(',')}${hor}`;
+    default: return '';
+  }
+}
+
+function quitarBloque(i){ editBloques.splice(i,1); renderBloques(); }
+
+function onTipoChange(){
+  const t = document.getElementById('disp-tipo').value;
+  const horWrap = document.getElementById('disp-horario-wrap');
+  horWrap.style.display = (t==='consultorio'||t==='tarde') ? 'flex' : 'none';
+}
+
+function onAlcanceChange(){
+  const a = document.getElementById('disp-alcance').value;
+  document.getElementById('wrap-rango').style.display      = (a==='rango'||a==='combinado')?'flex':'none';
+  document.getElementById('wrap-sueltos').style.display    = a==='dias_sueltos'?'block':'none';
+  // Show day checkboxes for rango too (optional filter), and for dias_semana/combinado
+  document.getElementById('wrap-semana').style.display     = (a==='dias_semana'||a==='rango'||a==='combinado')?'block':'none';
+  document.getElementById('wrap-combinado').style.display  = 'none'; // hide duplicate combinado fields
+}
+
+function getCheckedDow(containerId){
+  return Array.from(document.querySelectorAll(`#${containerId} input[type=checkbox]:checked`)).map(c=>parseInt(c.value));
+}
+
+function agregarBloque(){
+  const tipo    = document.getElementById('disp-tipo').value;
+  const alcance = document.getElementById('disp-alcance').value;
+  const horario = document.getElementById('disp-horario').value.trim();
+  const b = { tipo, alcance };
+  if(horario) b.horario=horario;
+
+  if(alcance==='rango'){
+    const desde=document.getElementById('disp-desde').value;
+    const hasta=document.getElementById('disp-hasta').value;
+    if(!desde||!hasta){ alert('Ingresá rango de fechas.'); return; }
+    if(desde>hasta){ alert('Fecha inicio debe ser antes del fin.'); return; }
+    b.desde=desde; b.hasta=hasta;
+  } else if(alcance==='dias_sueltos'){
+    const raw=document.getElementById('disp-sueltos').value;
+    const dias=raw.split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n)&&n>=1&&n<=31);
+    if(!dias.length){ alert('Ingresá al menos un día válido.'); return; }
+    b.dias=dias;
+  } else if(alcance==='dias_semana'){
+    const dow=getCheckedDow('dias-semana-checks');
+    if(!dow.length){ alert('Seleccioná al menos un día de semana.'); return; }
+    b.dowList=dow;
+  } else if(alcance==='combinado'){
+    const desde=document.getElementById('disp-desde').value;
+    const hasta=document.getElementById('disp-hasta').value;
+    const dow=getCheckedDow('dias-semana-checks');
+    if(!desde||!hasta){ alert('Ingresá rango de fechas.'); return; }
+    if(desde>hasta){ alert('La fecha de inicio debe ser antes del fin.'); return; }
+    if(!dow.length){ alert('Seleccioná al menos un día de semana.'); return; }
+    b.desde=desde; b.hasta=hasta; b.dowList=dow;
+  }
+  // 'mes' no necesita campos extra
+  editBloques.push(b);
+  renderBloques();
+  // Reset
+  document.getElementById('disp-horario').value='';
+  document.getElementById('disp-desde').value='';
+  document.getElementById('disp-hasta').value='';
+  document.getElementById('disp-sueltos').value='';
+  document.querySelectorAll('#dias-semana-checks input, #dias-semana-checks2 input').forEach(c=>c.checked=false);
+}
+
+function guardarMedico(){
+  const nombre = document.getElementById('med-nombre').value.trim();
+  if(!nombre){ alert('Ingresá un nombre.'); return; }
+  const estado = document.getElementById('med-estado').value;
+  const maxGuardRaw = document.getElementById('med-max-guard').value;
+  const maxGuard = maxGuardRaw!=='' ? parseInt(maxGuardRaw) : null;
+  const maxFindeVal = document.getElementById('med-max-finde').value;
+  const maxFinde = maxFindeVal!=='' ? parseInt(maxFindeVal) : null;
+  const mk = mesKey(curY,curM);
+
+  if(editMedicoId){
+    const m = getMedico(editMedicoId);
+    m.nombre=nombre; m.estado=estado;
+    if(!m.disponibilidad) m.disponibilidad={};
+    if(!m.disponibilidad[mk]) m.disponibilidad[mk]={};
+    m.disponibilidad[mk].maxGuard=maxGuard;
+    m.disponibilidad[mk].maxFinde=maxFinde;
+    m.disponibilidad[mk].bloques=editBloques;
+  } else {
+    const newM = { id:uuid(), nombre, estado, disponibilidad:{}, guardias:{} };
+    newM.disponibilidad[mk]={ maxGuard, maxFinde, bloques:editBloques };
+    state.medicos.push(newM);
+  }
+  save();
+  cerrarModalMedico();
+  renderMedicos();
+}
+
+function eliminarMedico(){
+  if(!editMedicoId) return;
+  const m=getMedico(editMedicoId);
+  if(!confirm(`¿Eliminar a ${m.nombre}?`)) return;
+  state.medicos=state.medicos.filter(x=>x.id!==editMedicoId);
+  save();
+  cerrarModalMedico();
+  renderMedicos();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  GENERACIÓN AUTOMÁTICA
+// ═══════════════════════════════════════════════════════════
+function diagnosticarMes(){
+  const total = diasEnMes(curY, curM);
+  const mesNom = `${NOM_MES[curM-1]} ${curY}`;
+  const descanso = state.config.descanso;
+  const maxFindeGl = state.config.maxFinde;
+  const MIN_DIA = state.config.minPorDia ?? 3;
+  const MAX_DIA = state.config.maxPorDia ?? 4;
+
+  const activos = state.medicos.filter(m => m.estado !== 'inactivo');
+
+  // Médicos que pueden hacer guardia este mes (tienen al menos un día disponible)
+  const paraGuardia = activos.filter(m => {
+    for(let d=1; d<=total; d++){
+      if(puedeHacerGuardia(m.id, curY, curM, d)) return true;
+    }
+    return false;
+  });
+
+  // Médicos excluidos totalmente
+  const excluidos = activos.filter(m => !paraGuardia.includes(m));
+
+  // Días disponibles por médico
+  const diasDispPorMed = {};
+  const maxGPorMed = {};
+  let totalAsignacionesPosibles = 0;
+
+  paraGuardia.forEach(m => {
+    const disp = getDispMes(m.id, curY, curM);
+    const maxG = disp?.maxGuard ?? state.config.maxGuardGlobal ?? 8;
+    maxGPorMed[m.id] = maxG;
+    let diasDisp = 0;
+    for(let d=1; d<=total; d++){
+      if(puedeHacerGuardia(m.id, curY, curM, d)) diasDisp++;
+    }
+    diasDispPorMed[m.id] = diasDisp;
+    const maxPosibleDescanso = Math.floor((diasDisp - 1) / (descanso + 1)) + 1;
+    const maxReal = Math.min(maxG, maxPosibleDescanso, diasDisp);
+    totalAsignacionesPosibles += maxReal;
+  });
+
+  // Fines de semana
+  const diasFinde = [];
+  for(let d=1; d<=total; d++) if(esFinde(curY,curM,d)) diasFinde.push(d);
+  const nFinde = diasFinde.length;
+
+  // Médicos que pueden ir a fines de semana
+  const puedenFinde = paraGuardia.filter(m => {
+    return diasFinde.some(d => puedeHacerGuardia(m.id, curY, curM, d));
+  });
+  const totalFindeSlots = puedenFinde.reduce((s,m)=>{
+    const disp = getDispMes(m.id, curY, curM);
+    return s + (disp?.maxFinde ?? maxFindeGl);
+  }, 0);
+
+  // Análisis
+  const slotsNecMin = total * MIN_DIA;
+  const slotsNecMax = total * MAX_DIA;
+  const findeNecMin = nFinde * MIN_DIA;
+  const maxPosibleDescansoGlobal = Math.floor(total / (descanso + 1));
+
+  let alertas = [];
+  let info = [];
+
+  // Info general
+  info.push(`📅 ${mesNom}: ${total} días, ${nFinde} fines de semana`);
+  info.push(`👩‍⚕️ Para guardia: ${paraGuardia.length} obstétricas`);
+  if(excluidos.length) info.push(`🚫 Sin guardia este mes: ${excluidos.map(m=>m.nombre).join(', ')}`);
+  info.push(`🎯 Slots necesarios: mín ${slotsNecMin} (${MIN_DIA}/día) · máx ${slotsNecMax} (${MAX_DIA}/día)`);
+  info.push(`✅ Slots posibles: ${totalAsignacionesPosibles}`);
+  info.push(`📋 Fines de semana: ${totalFindeSlots} cupos disponibles · ${findeNecMin} necesarios mín`);
+
+  // Alertas
+  if(totalAsignacionesPosibles < slotsNecMin){
+    alertas.push(`🔴 CRÍTICO: Solo hay ${totalAsignacionesPosibles} asignaciones posibles pero se necesitan ${slotsNecMin} para cubrir ${MIN_DIA} por día. Bajá el mínimo por día o agregá médicos.`);
+  } else if(totalAsignacionesPosibles < slotsNecMin * 1.1){
+    alertas.push(`🟡 AJUSTADO: Los slots posibles (${totalAsignacionesPosibles}) cubren el mínimo pero con poco margen. Puede haber días sin cubrir.`);
+  }
+
+  if(totalFindeSlots < findeNecMin){
+    alertas.push(`🔴 FINES DE SEMANA: Solo hay ${totalFindeSlots} cupos de finde disponibles pero se necesitan ${findeNecMin} para cubrir ${MIN_DIA} por día. Subí el máximo de fines de semana.`);
+  } else if(totalFindeSlots < findeNecMin * 1.2){
+    alertas.push(`🟡 FINES AJUSTADOS: ${totalFindeSlots} cupos vs ${findeNecMin} necesarios. Poco margen, algunos fines pueden quedar con menos médicos.`);
+  }
+
+  // Médicos con problemas individuales
+  paraGuardia.forEach(m => {
+    const maxG = maxGPorMed[m.id];
+    const diasDisp = diasDispPorMed[m.id];
+    const maxPosible = Math.min(Math.floor(diasDisp / (descanso + 1)) + 1, diasDisp);
+    if(maxPosible < maxG){
+      alertas.push(`⚠️ ${m.nombre}: configurado para ${maxG} guardias pero solo puede hacer ${maxPosible} (tiene ${diasDisp} días disponibles con descanso de ${descanso}).`);
+    }
+  });
+
+  // Descanso vs maxGuard
+  paraGuardia.forEach(m => {
+    const maxG = maxGPorMed[m.id];
+    if(maxG > maxPosibleDescansoGlobal){
+      alertas.push(`⚠️ ${m.nombre}: ${maxG} guardias es imposible con descanso=${descanso} en ${total} días (máx posible: ${maxPosibleDescansoGlobal}).`);
+    }
+  });
+
+  // Mostrar resultado
+  const titulo = alertas.length === 0
+    ? '✅ Configuración viable'
+    : alertas.some(a=>a.startsWith('🔴')) ? '🔴 Hay problemas críticos' : '🟡 Hay advertencias';
+
+  const msg = `${titulo}\n\n${info.join('\n')}\n\n${alertas.length ? 'ALERTAS:\n' + alertas.join('\n') : 'No hay conflictos detectados. La configuración debería generar un cronograma completo.'}`;
+  alert(msg);
+}
+
+function generarAuto(){
+  const total = diasEnMes(curY,curM);
+  const mk = mesKey(curY,curM);
+  if(!state.guardias) state.guardias={};
+
+  const activos = state.medicos.filter(m=>m.estado!=='inactivo');
+  if(!activos.length){ alert('No hay obstétricas activas.'); return; }
+
+  const g = getGuardiasMes(curY,curM);
+  const diasConAsig = Object.values(g).filter(v=>v&&v.length>0).length;
+  if(diasConAsig>0 && !confirm(`Este mes ya tiene ${diasConAsig} día(s) asignados. ¿Reemplazar?`)) return;
+
+  // Limpiar mes
+  state.guardias[mk]={};
+  for(let d=1;d<=total;d++) state.guardias[mk][String(d)]=[];
+
+  const descanso   = state.config.descanso;
+  const maxFindeGl = state.config.maxFinde;
+  const MIN_DIA    = state.config.minPorDia ?? 3;
+  const MAX_DIA    = state.config.maxPorDia ?? 4;
+
+  // Estado por médico
+  const est={};
+  activos.forEach(m=>{
+    const disp=getDispMes(m.id,curY,curM);
+    const maxG = disp?.maxGuard ?? state.config.maxGuardGlobal ?? 8;
+    const maxF = disp?.maxFinde??maxFindeGl;
+    let pm=curM-1,py=curY; if(pm<1){pm=12;py--;}
+    const pg=getGuardiasMes(py,pm);
+    const pd=diasEnMes(py,pm);
+    let ultimoMesAnt=-999;
+    for(let d=pd;d>=1;d--){
+      if((pg[String(d)]||[]).includes(m.id)){ ultimoMesAnt=d-pd-1; break; }
+    }
+    est[m.id]={ count:0, finde:0, ultimo:ultimoMesAnt, maxG, maxF };
+  });
+
+  // ── ALGORITMO: COBERTURA PRIMERO, LUEGO EQUIDAD ──────────────
+  //
+  // FASE 1: Garantizar mínimo MIN_DIA en cada día del mes.
+  //         Para cada día, tomamos los mejores candidatos disponibles
+  //         (con descanso ok, sin exceder maxG ni maxFinde) hasta llegar a MIN_DIA.
+  //         Si no alcanza MIN_DIA respetando descanso, se avisa pero no se fuerza.
+  //
+  // FASE 2: Completar hasta MAX_DIA en cada día priorizando equidad
+  //         (los médicos con menos guardias asignadas van primero).
+  //
+  // REGLAS INVIOLABLES EN AMBAS FASES:
+  //   - Descanso mínimo entre guardias del mismo médico
+  //   - Máximo de guardias por mes por médico
+  //   - Máximo de fines de semana por mes por médico
+  //   - Máximo MAX_DIA médicos por día
+
+  // Helper: ¿puede este médico ir el día d?
+  function puedeEseDia(m, d, ignorarFinde=false){
+    if(state.guardias[mk][String(d)].includes(m.id)) return false;
+    if(!puedeHacerGuardia(m.id,curY,curM,d)) return false;
+    if(est[m.id].count >= est[m.id].maxG) return false;
+    const diffAntes = d - est[m.id].ultimo;
+    if(diffAntes <= descanso) return false;
+    // Verificar que no tenga guardia asignada muy cerca después
+    for(let d2=d+1;d2<=Math.min(d+descanso,total);d2++){
+      if(state.guardias[mk][String(d2)].includes(m.id)) return false;
+    }
+    // No guardia el día antes de consultorio/tarde
+    if(esOcupado(tipoEnFechaExt(m, d+1))) return false;
+    const esFd = esFinde(curY,curM,d);
+    if(!ignorarFinde && esFd && est[m.id].finde >= est[m.id].maxF) return false;
+    if(state.guardias[mk][String(d)].length >= MAX_DIA) return false;
+    return true;
+  }
+
+  function asignarEnDia(m, d){
+    state.guardias[mk][String(d)].push(m.id);
+    est[m.id].count++;
+    est[m.id].ultimo = d;
+    if(esFinde(curY,curM,d)) est[m.id].finde++;
+  }
+
+  // Control de presupuesto: un médico solo puede tomar guardia hoy
+  // si le quedan suficientes días para distribuir sus guardias pendientes.
+  function tienePrespuesto(m, d){
+    const diasRestantes = total - d;
+    const pendientes = est[m.id].maxG - est[m.id].count - 1;
+    if(pendientes <= 0) return true;
+    return diasRestantes >= pendientes * (descanso + 1);
+  }
+
+  function sort_eq(lista){
+    return lista.slice().sort((a,b)=> est[a.id].count - est[b.id].count || Math.random()-.5);
+  }
+
+  // FASE 1: cobertura mínima con presupuesto
+  for(let d=1;d<=total;d++){
+    while(state.guardias[mk][String(d)].length < MIN_DIA){
+      let candidatos = sort_eq(activos.filter(m=>puedeEseDia(m,d,false)&&tienePrespuesto(m,d)));
+      if(!candidatos.length) candidatos = sort_eq(activos.filter(m=>puedeEseDia(m,d,true)&&tienePrespuesto(m,d)));
+      if(!candidatos.length) candidatos = sort_eq(activos.filter(m=>puedeEseDia(m,d,false)));
+      if(!candidatos.length) candidatos = sort_eq(activos.filter(m=>puedeEseDia(m,d,true)));
+      if(!candidatos.length) break;
+      asignarEnDia(candidatos[0], d);
+    }
+  }
+
+  // FASE 2: completar hasta MAX_DIA con presupuesto y equidad
+  for(let d=1;d<=total;d++){
+    if(state.guardias[mk][String(d)].length >= MAX_DIA) continue;
+    let candidatos = sort_eq(activos.filter(m=>puedeEseDia(m,d,false)&&tienePrespuesto(m,d)));
+    if(!candidatos.length) candidatos = sort_eq(activos.filter(m=>puedeEseDia(m,d,true)&&tienePrespuesto(m,d)));
+    if(!candidatos.length) candidatos = sort_eq(activos.filter(m=>puedeEseDia(m,d,false)));
+    for(const m of candidatos){
+      if(state.guardias[mk][String(d)].length >= MAX_DIA) break;
+      asignarEnDia(m, d);
+    }
+  }
+
+  save();
+  renderCalendario();
+
+  // Resumen
+  const diasVacios = Object.values(state.guardias[mk]).filter(v=>v.length===0).length;
+  const diasBajos  = Object.values(state.guardias[mk]).filter(v=>v.length>0&&v.length<MIN_DIA).length;
+  const diasOk     = Object.values(state.guardias[mk]).filter(v=>v.length>=MIN_DIA).length;
+  const resumen = activos.map(m=>`${m.nombre}: ${est[m.id].count} guardias`).join('\n');
+
+  let aviso='';
+  if(diasVacios>0) aviso+=`\n\n⚠️ ${diasVacios} día(s) sin nadie asignado.`;
+  if(diasBajos>0)  aviso+=`\n⚠️ ${diasBajos} día(s) con menos de ${MIN_DIA} médicos (insuficiente personal ese día).`;
+  aviso+=`\n✅ ${diasOk} día(s) cubiertos con ${MIN_DIA}-${MAX_DIA} médicos.`;
+
+  alert(`✅ Generado ${NOM_MES[curM-1]} ${curY}.${aviso}\n\nResumen:\n${resumen}`);
+}
+
+function limpiarMes(){
+  if(!confirm(`¿Limpiar ${NOM_MES[curM-1]} ${curY}?`)) return;
+  if(!state.guardias) state.guardias={};
+  state.guardias[mesKey(curY,curM)]={};
+  save(); renderCalendario();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RESUMEN
+// ═══════════════════════════════════════════════════════════
+function countConsMes(medicoId, y, m){
+  const total=diasEnMes(y,m); let c=0;
+  for(let d=1;d<=total;d++){
+    const t=tipoEnFecha(medicoId,y,m,d);
+    if(t==='consultorio'||t==='tarde') c++;
+  }
+  return c;
+}
+
+function renderResumen(){
+  document.getElementById('res-month').textContent=`${NOM_MES[curM-1]} ${curY}`;
+  document.getElementById('res-sub').textContent=`${NOM_MES[curM-1]} ${curY}`;
+  const equiv = state.config.equiv||4;
+  const sorted=[...state.medicos].sort((a,b)=>countGuardiasMes(b.id,curY,curM)-countGuardiasMes(a.id,curY,curM));
+  const maxG = Math.max(1,...sorted.map(m=>countGuardiasMes(m.id,curY,curM)));
+
+  const HORAS_MES = 192;
+
+  document.getElementById('res-tbody').innerHTML = sorted.map((m,i)=>{
+    const n  = countGuardiasMes(m.id,curY,curM);
+    const nF = countFindesMes(m.id,curY,curM);
+    const nC = countConsMes(m.id,curY,curM);
+    const hConsD = horasConsultorioDia(m.id,curY,curM);
+    const horas  = n*24 + nC*hConsD;
+    const pct    = Math.min(100, Math.round(horas/HORAS_MES*100));
+    const color  = colorMed(m.id);
+    const disp   = getDispMes(m.id,curY,curM);
+    const nBloques = disp?.bloques?.length||0;
+    const bloqRes = nBloques
+      ? disp.bloques.map(b=>`<span class="${{guardia:'tag-g',consultorio:'tag-c',tarde:'tag-c',nodis:'tag-n'}[b.tipo]||'tag-g'}" style="margin-right:3px">${descTipo(b.tipo)}</span>`).join('')
+      : '<span style="color:var(--text3);font-size:11px">Todo guardia</span>';
+    const barColor = pct>=100?'#0d9488':pct>=75?'#2563eb':'#d97706';
+    return `<tr style="cursor:pointer" onclick="verMedicoEnCalendario('${m.id}')" title="Ver en calendario">
+      <td><div style="display:flex;align-items:center;gap:8px">
+        <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0"></div>
+        <span style="font-weight:600;color:var(--accent)">${m.nombre}</span>
+        ${m.estado==='inactivo'?'<span style="color:var(--danger);font-size:10px">inactivo</span>':''}
+        <span style="font-size:10px;color:var(--text3)">→ ver</span>
+      </div></td>
+      <td style="font-weight:700;color:${color}">${n} <span style="font-size:11px;color:var(--text3)">(${nF} finde)</span></td>
+      <td style="color:var(--text2)">${nC} <span style="font-size:11px;color:var(--text3)">(${nC*hConsD}hs)</span></td>
+      <td style="font-weight:600">${horas}hs <span style="font-size:11px;color:var(--text3)">/ ${HORAS_MES}hs</span></td>
+      <td><div style="display:flex;align-items:center;gap:6px">
+        <div class="bar-wrap"><div class="bar-fill" style="width:${pct}%;background:${barColor}"></div></div>
+        <span style="font-size:11px;font-weight:600;color:${barColor}">${pct}%</span>
+      </div></td>
+      <td>${bloqRes}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════════════════════
+function aplicarGlobalATodos(){
+  const val = parseInt(document.getElementById('cfg-max-guard-global').value);
+  if(isNaN(val)||val<1){ alert('Ingresá un número válido primero.'); return; }
+  // Guardar el global primero
+  state.config.maxGuardGlobal = val;
+  // Borrar el valor individual de todos los médicos para el mes actual
+  const mk = mesKey(curY, curM);
+  let n = 0;
+  state.medicos.forEach(m=>{
+    if(!m.disponibilidad) m.disponibilidad={};
+    if(!m.disponibilidad[mk]) m.disponibilidad[mk]={ maxGuard:null, maxFinde:null, bloques:[] };
+    if(m.disponibilidad[mk].maxGuard !== null){
+      m.disponibilidad[mk].maxGuard = null; // usar global
+      n++;
+    }
+  });
+  save();
+  alert(`✅ Global seteado en ${val} guardias.\n${n} médico(s) reseteados al valor global para ${NOM_MES[curM-1]} ${curY}.`);
+}
+
+function renderConfig(){
+  document.getElementById('cfg-descanso').value=state.config.descanso;
+  document.getElementById('cfg-max-guard-global').value=state.config.maxGuardGlobal||8;
+  document.getElementById('cfg-max-finde').value=state.config.maxFinde;
+  document.getElementById('cfg-min-dia').value=state.config.minPorDia||3;
+  document.getElementById('cfg-max-dia').value=state.config.maxPorDia||4;
+  document.getElementById('cfg-equiv').value=state.config.equiv||4;
+}
+
+function guardarConfig(){
+  state.config.maxGuardGlobal=parseInt(document.getElementById('cfg-max-guard-global').value)||8;
+  state.config.descanso=parseInt(document.getElementById('cfg-descanso').value)||3;
+  state.config.maxFinde=parseInt(document.getElementById('cfg-max-finde').value)||2;
+  state.config.minPorDia=parseInt(document.getElementById('cfg-min-dia').value)||3;
+  state.config.maxPorDia=parseInt(document.getElementById('cfg-max-dia').value)||4;
+  state.config.equiv=parseInt(document.getElementById('cfg-equiv').value)||4;
+  save(); alert('✅ Configuración guardada.');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  EXPORT / IMPORT
+// ═══════════════════════════════════════════════════════════
+function exportCSV(){
+  const mk=mesKey(curY,curM);
+  const g=getGuardiasMes(curY,curM);
+  const total=diasEnMes(curY,curM);
+  let csv='Fecha,Día semana,Médico\n';
+  for(let d=1;d<=total;d++){
+    const asig=g[String(d)]||[];
+    const fecha=diaKey(curY,curM,d);
+    const dow=NOM_DIA[new Date(curY,curM-1,d).getDay()];
+    if(!asig.length){ csv+=`${fecha},${dow},Sin asignar\n`; continue; }
+    asig.forEach(id=>{ const m=getMedico(id); if(m) csv+=`${fecha},${dow},"${m.nombre}"\n`; });
+  }
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download=`guardias-${mk}.csv`; a.click();
+}
+
+function exportarJSON(){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));
+  a.download=`guardias-backup-${new Date().toISOString().slice(0,10)}.json`; a.click();
+}
+
+function importarJSON(ev){
+  const file=ev.target.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=e=>{
+    try{ state=JSON.parse(e.target.result); save(); renderCalendario(); alert('✅ Importado.'); }
+    catch{ alert('Archivo inválido.'); }
+  };
+  r.readAsText(file); ev.target.value='';
+}
+
+function resetTodo(){
+  if(!confirm('¿Borrar TODO?')) return;
+  if(!confirm('¿Estás segura?')) return;
+  localStorage.removeItem('gh_v2'); location.reload();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════
+load();
+renderCalendario();
+renderConfig();
+onTipoChange();
+onAlcanceChange();
+
+document.querySelectorAll('.overlay').forEach(o=>{
+  o.addEventListener('click',e=>{ if(e.target===o){ o.classList.remove('open'); }});
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape') document.querySelectorAll('.overlay.open').forEach(o=>o.classList.remove('open'));
+});
+</script>
+</body>
+</html>
