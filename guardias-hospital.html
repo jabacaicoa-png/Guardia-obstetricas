@@ -179,6 +179,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
   <button class="nav-btn" onclick="showView('medicos',this)">Obstétricas</button>
   <button class="nav-btn" onclick="showView('resumen',this)">Resumen</button>
   <button class="nav-btn" onclick="showView('config',this)">Config</button>
+  <button class="nav-btn" onclick="showView('instructivo',this)">📖</button>
 </div>
 
 <!-- ═══ CALENDARIO ═══ -->
@@ -190,6 +191,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
       <button class="btn btn-ghost btn-sm" onclick="nextMonth()">›</button>
     </div>
     <button class="btn btn-primary" onclick="generarAuto()">⚡ Generar</button>
+    <button class="btn btn-ghost" onclick="showView('instructivo',this)">📖 Instructivo</button>
     <button class="btn btn-ghost" onclick="diagnosticarMes()">🔍 Diagnóstico</button>
     <button class="btn btn-ghost" onclick="limpiarMes()">🗑 Limpiar mes</button>
     <button class="btn btn-ghost" onclick="window.print()">🖨 Imprimir</button>
@@ -488,6 +490,7 @@ let state = {
 
 let curY = new Date().getFullYear();
 let curM = new Date().getMonth() + 1;
+// Se sobreescriben en load() si hay un mes guardado
 let modalDiaActual = null;
 let filtroMedicoId = null;
 let editMedicoId = null;
@@ -513,7 +516,10 @@ function uuid(){ return Math.random().toString(36).slice(2,9); }
 // ═══════════════════════════════════════════════════════════
 //  PERSISTENCIA
 // ═══════════════════════════════════════════════════════════
-function save(){ localStorage.setItem('gh_v2', JSON.stringify(state)); }
+function save(){
+  state.lastMes = { y: curY, m: curM };
+  localStorage.setItem('gh_v2', JSON.stringify(state));
+}
 function load(){
   const r = localStorage.getItem('gh_v2');
   if(r){ try{ state=JSON.parse(r); }catch(e){} }
@@ -528,6 +534,12 @@ function load(){
   if(!state.config.minPorDia) state.config.minPorDia=3;
   if(!state.config.maxPorDia) state.config.maxPorDia=4;
   if(!state.config.equiv) state.config.equiv=4;
+
+  // Restaurar último mes visitado
+  if(state.lastMes){
+    curY = state.lastMes.y;
+    curM = state.lastMes.m;
+  }
 
   // Precargar médicos reales si está vacío
   if(state.medicos.length===0){
@@ -1120,6 +1132,18 @@ function abrirModalNuevoMedico(){
   document.getElementById('modal-medico').classList.add('open');
 }
 
+function setFechasDefecto(){
+  // Poner como fecha por defecto el primer y último día del mes actual de la app
+  const primerDia = `${curY}-${String(curM).padStart(2,'0')}-01`;
+  const ultimoDia = `${curY}-${String(curM).padStart(2,'0')}-${String(diasEnMes(curY,curM)).padStart(2,'0')}`;
+  document.getElementById('disp-desde').value = primerDia;
+  document.getElementById('disp-hasta').value = ultimoDia;
+  const d2 = document.getElementById('disp-desde2');
+  const h2 = document.getElementById('disp-hasta2');
+  if(d2) d2.value = primerDia;
+  if(h2) h2.value = ultimoDia;
+}
+
 function abrirModalMedico(id){
   editMedicoId = id;
   const m = getMedico(id);
@@ -1135,6 +1159,7 @@ function abrirModalMedico(id){
   document.getElementById('modal-med-title').textContent=`Editar: ${m.nombre}`;
   document.getElementById('modal-mes-label').textContent=`${NOM_MES[curM-1]} ${curY}`;
   renderBloques();
+  setFechasDefecto();
   document.getElementById('modal-medico').classList.add('open');
 }
 
@@ -1233,8 +1258,8 @@ function agregarBloque(){
   renderBloques();
   // Reset
   document.getElementById('disp-horario').value='';
-  document.getElementById('disp-desde').value='';
-  document.getElementById('disp-hasta').value='';
+  // Reset to current app month after adding bloque
+  setFechasDefecto();
   document.getElementById('disp-sueltos').value='';
   document.querySelectorAll('#dias-semana-checks input, #dias-semana-checks2 input').forEach(c=>c.checked=false);
 }
@@ -1685,5 +1710,134 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape') document.querySelectorAll('.overlay.open').forEach(o=>o.classList.remove('open'));
 });
 </script>
+
+<!-- ═══ INSTRUCTIVO ═══ -->
+<div class="view" id="view-instructivo" style="max-width:700px">
+  <div class="sec-header">
+    <div class="sec-title">📖 Instructivo de uso</div>
+  </div>
+
+  <style>
+    .inst-section { background:var(--surface); border:1px solid var(--border); border-radius:var(--r); padding:16px; margin-bottom:14px; }
+    .inst-section h3 { font-size:14px; font-weight:700; color:var(--accent); margin-bottom:10px; }
+    .inst-paso { background:#fff; border:1px solid var(--border); border-radius:var(--rs); padding:10px 12px; margin-bottom:8px; }
+    .inst-paso strong { color:var(--accent); }
+    .inst-tip { background:#fffbeb; border-left:3px solid #ca8a04; padding:8px 12px; border-radius:4px; font-size:12px; margin:8px 0; }
+    .inst-alerta { background:#fef2f2; border-left:3px solid #dc2626; padding:8px 12px; border-radius:4px; font-size:12px; margin:8px 0; }
+    .inst-ok { background:#f0fdf4; border-left:3px solid #16a34a; padding:8px 12px; border-radius:4px; font-size:12px; margin:8px 0; }
+    .inst-table { width:100%; border-collapse:collapse; font-size:12px; margin:8px 0; }
+    .inst-table th { background:var(--surface2); text-align:left; padding:6px 8px; border:1px solid var(--border); font-weight:600; }
+    .inst-table td { padding:6px 8px; border:1px solid var(--border); }
+    .inst-badge { display:inline-block; padding:1px 7px; border-radius:100px; font-size:11px; font-weight:600; }
+    .inst-badge-g { background:#dbeafe; color:#1e40af; }
+    .inst-badge-c { background:#fef3c7; color:#92400e; }
+    .inst-badge-n { background:#fee2e2; color:#991b1b; }
+    .inst-section ol, .inst-section ul { padding-left:18px; font-size:13px; }
+    .inst-section li { margin:5px 0; }
+    .inst-section p { font-size:13px; margin:6px 0; }
+  </style>
+
+  <div class="inst-ok">
+    <strong>¿Para qué sirve esta app?</strong><br>
+    Para organizar el cronograma mensual de guardias. Permite cargar la disponibilidad de cada obstétrica, generar el cronograma automáticamente y ajustarlo a mano si hace falta.
+  </div>
+
+  <div class="inst-section">
+    <h3>🗂 Las secciones de la app</h3>
+    <table class="inst-table">
+      <tr><th>Sección</th><th>Para qué sirve</th></tr>
+      <tr><td><b>Calendario</b></td><td>Ver y editar el cronograma mensual</td></tr>
+      <tr><td><b>Obstétricas</b></td><td>Cargar y configurar a cada persona</td></tr>
+      <tr><td><b>Resumen</b></td><td>Ver horas y guardias totales</td></tr>
+      <tr><td><b>Config</b></td><td>Ajustar las reglas globales</td></tr>
+    </table>
+  </div>
+
+  <div class="inst-section">
+    <h3>👩‍⚕️ PASO 1 — Cargar las obstétricas</h3>
+    <div class="inst-paso">
+      <ol>
+        <li>Ir a <strong>Obstétricas</strong></li>
+        <li>Tocar <strong>+ Agregar</strong></li>
+        <li>Escribir el nombre y tocar <strong>Guardar</strong></li>
+      </ol>
+    </div>
+    <div class="inst-tip">💡 Podés reordenar arrastrando el ícono ⠿ a la izquierda de cada nombre.</div>
+  </div>
+
+  <div class="inst-section">
+    <h3>📋 PASO 2 — Configurar disponibilidad mensual</h3>
+    <p>Tocá el lápiz ✏️ de cada obstétrica para configurar qué puede hacer ese mes.</p>
+    <table class="inst-table">
+      <tr><th>Tipo</th><th>Qué significa</th></tr>
+      <tr><td><span class="inst-badge inst-badge-g">Guardia</span></td><td>Puede hacer guardia esos días</td></tr>
+      <tr><td><span class="inst-badge inst-badge-c">Consultorio</span></td><td>Turno fijo — NO hace guardia</td></tr>
+      <tr><td><span class="inst-badge inst-badge-n">No disponible</span></td><td>Vacaciones, licencia, permiso</td></tr>
+    </table>
+    <p><strong>Alcance de cada bloque:</strong></p>
+    <ul>
+      <li><b>Todo el mes</b> — todos los días</li>
+      <li><b>Días hábiles (Lun-Vie)</b> — solo días de semana</li>
+      <li><b>Rango de fechas</b> — del día X al día Y</li>
+      <li><b>Rango + días de semana</b> — ej: del 16 al 30, solo mié y sáb</li>
+      <li><b>Días sueltos</b> — días puntuales (ej: 3, 7, 22)</li>
+    </ul>
+    <div class="inst-alerta">⚠️ Si una obstétrica tiene consultorio el lunes, la app automáticamente le impide guardia el domingo anterior.</div>
+    <div class="inst-tip">💡 Si tiene consultorio todo el mes, la app la excluye sola de todas las guardias.</div>
+  </div>
+
+  <div class="inst-section">
+    <h3>⚙️ PASO 3 — Configuración global</h3>
+    <table class="inst-table">
+      <tr><th>Configuración</th><th>Valor recomendado</th></tr>
+      <tr><td>Días mínimos de descanso entre guardias</td><td>2</td></tr>
+      <tr><td>Máx. fines de semana por mes</td><td>2</td></tr>
+      <tr><td>Mínimo de obstétricas por guardia</td><td>3</td></tr>
+      <tr><td>Máximo de obstétricas por guardia</td><td>4</td></tr>
+      <tr><td>Máx. guardias por mes (global)</td><td>7 u 8</td></tr>
+    </table>
+    <div class="inst-tip">💡 Para cambiar el límite de guardias de todas a la vez: modificá el valor global y tocá <b>"Aplicar a todos"</b>.</div>
+  </div>
+
+  <div class="inst-section">
+    <h3>🔍 PASO 4 — Diagnóstico antes de generar</h3>
+    <p>Tocá <strong>🔍 Diagnóstico</strong> en el Calendario. Te muestra si la configuración es viable o si hay conflictos que van a generar errores.</p>
+    <div class="inst-alerta">🔴 Si aparece un error CRÍTICO, revisá la configuración antes de generar.</div>
+  </div>
+
+  <div class="inst-section">
+    <h3>⚡ PASO 5 — Generar el cronograma</h3>
+    <ol>
+      <li>Ir a <strong>Calendario</strong> y navegar al mes (flechas ‹ ›)</li>
+      <li>Tocar <strong>⚡ Generar</strong></li>
+      <li>Al terminar aparece un resumen de guardias asignadas</li>
+    </ol>
+    <div class="inst-ok">✅ Respeta automáticamente: descanso mínimo, límite de guardias, fines de semana y disponibilidad individual.</div>
+  </div>
+
+  <div class="inst-section">
+    <h3>✏️ PASO 6 — Ajustes manuales</h3>
+    <p>Tocá cualquier día del calendario para agregar, quitar o limpiar obstétricas de ese día.</p>
+  </div>
+
+  <div class="inst-section">
+    <h3>📊 Resumen y horas</h3>
+    <p>En <strong>Resumen</strong> ves guardias, consultorios y horas totales vs las 192hs mensuales (8 guardias × 24hs). Tocando un nombre abrís su mes completo en el calendario.</p>
+  </div>
+
+  <div class="inst-section">
+    <h3>💾 Backup y exportar</h3>
+    <ul>
+      <li>Los datos se guardan automáticamente en el dispositivo</li>
+      <li><b>Backup:</b> Config → ⬇ Backup (archivo .json)</li>
+      <li><b>Restaurar:</b> Config → ⬆ Restaurar</li>
+      <li><b>Exportar cronograma:</b> Resumen → ⬇ CSV</li>
+      <li><b>Imprimir:</b> Calendario → 🖨 Imprimir</li>
+    </ul>
+    <div class="inst-alerta">⚠️ Si borrás los datos del navegador los datos se pierden. Hacé backup regularmente.</div>
+  </div>
+
+</div>
+
 </body>
 </html>
