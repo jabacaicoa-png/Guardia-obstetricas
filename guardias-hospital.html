@@ -1797,7 +1797,7 @@ function exportarPDF(){
 
   // ── Celdas del calendario ──
   const start = primerDia(curY, curM);
-  const celH = 18; // altura celda
+  const celH = 22; // altura celda — más espacio para nombres
   let row = 0, col = start;
   y = 30;
 
@@ -1828,19 +1828,40 @@ function exportarPDF(){
     doc.setTextColor(80,80,80);
     doc.text(String(d), x+1.5, cy+3.5);
 
-    // Nombres
+    // Nombres — chip de color de fondo ocupando el ancho de la celda
     const asig = g[String(d)]||[];
-    doc.setFont('helvetica','normal');
-    doc.setFontSize(5.5);
-    asig.slice(0,5).forEach((id,idx)=>{
+    const chipH = 3.2;   // altura del chip
+    const chipMargen = 0.8;
+    const chipW = colW - chipMargen*2; // ancho completo de la celda menos margen
+    const startY = cy + 4.5;
+
+    asig.slice(0,4).forEach((id,idx)=>{
       const med = getMedico(id);
       if(!med) return;
       const [r,g2,b] = colorMedIdx(id);
-      // Mini chip de color
+      const chipY = startY + idx*(chipH+0.8);
+
+      // Fondo chip
+      doc.setFillColor(r,g2,b,0.15); // color suave
+      doc.setFillColor(Math.min(255,r+180), Math.min(255,g2+180), Math.min(255,b+180));
+      doc.rect(x+chipMargen, chipY, chipW, chipH, 'F');
+
+      // Borde izquierdo de color
       doc.setFillColor(r,g2,b);
-      doc.rect(x+1, cy+4.5+idx*2.6, 1.5, 1.5, 'F');
+      doc.rect(x+chipMargen, chipY, 1.2, chipH, 'F');
+
+      // Texto — ajustar tamaño para que entre en el ancho
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(6);
       doc.setTextColor(30,30,30);
-      doc.text(med.nombre, x+3.5, cy+5.6+idx*2.6);
+      // Truncar nombre si es muy largo
+      let nombre = med.nombre;
+      const maxW = chipW - 2.5;
+      while(doc.getTextWidth(nombre) > maxW && nombre.length > 3){
+        nombre = nombre.slice(0,-1);
+      }
+      if(nombre !== med.nombre) nombre = nombre.slice(0,-1) + '.';
+      doc.text(nombre, x+chipMargen+2, chipY+chipH*0.72);
     });
 
     col++;
