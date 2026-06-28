@@ -170,6 +170,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
   .form-row{flex-direction:column;}
 }
 </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -195,6 +196,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
     <button class="btn btn-ghost" onclick="diagnosticarMes()">🔍 Diagnóstico</button>
     <button class="btn btn-ghost" onclick="limpiarMes()">🗑 Limpiar mes</button>
     <button class="btn btn-ghost" onclick="window.print()">🖨 Imprimir</button>
+    <button class="btn btn-ghost" onclick="exportarPDF()">📄 PDF</button>
   </div>
   <div id="filtro-banner"></div>
   <div id="cal-alerts"></div>
@@ -263,6 +265,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
       <div class="form-group mt-8">
         <label>Días mínimos de descanso entre guardias</label>
         <input type="number" id="cfg-descanso" min="0" max="14" value="3">
+      </div>
+      <div class="form-group mt-8">
+        <label>Días máximos de descanso entre guardias <span style="font-weight:400;font-size:10px;text-transform:none;color:var(--text3)">(opcional)</span></label>
+        <input type="number" id="cfg-descanso-max" min="1" max="31" placeholder="Sin límite">
       </div>
       <div class="form-group mt-8">
         <label>Máximo de fines de semana por obstétrica/mes</label>
@@ -526,6 +532,7 @@ function load(){
   if(!state.medicos) state.medicos=[];
   if(!state.config) state.config={};
   if(state.config.descanso===undefined) state.config.descanso=3;
+  if(state.config.descansoMax===undefined) state.config.descansoMax=null;
   if(state.config.maxFinde===undefined) state.config.maxFinde=2;
   if(state.config.equiv===undefined) state.config.equiv=4;
   if(state.config.maxGuardGlobal===undefined) state.config.maxGuardGlobal=8;
@@ -1524,11 +1531,47 @@ function generarAuto(){
   }
 
   function sort_eq(lista){
-    return lista.slice().sort((a,b)=> est[a.id].count - est[b.id].count || Math.random()-.5);
+    const descansoMax = state.config.descansoMax || null;
+    return lista.slice().sort((a,b)=>{
+      // Si hay máximo de descanso, priorizar al que lleva más días sin guardia
+      if(descansoMax){
+        const diasA = curDia - est[a.id].ultimo; // días desde última guardia
+        const diasB = curDia - est[b.id].ultimo;
+        const urgA = diasA >= descansoMax ? 1 : 0;
+        const urgB = diasB >= descansoMax ? 1 : 0;
+        if(urgA !== urgB) return urgB - urgA; // urgente primero
+      }
+      return est[a.id].count - est[b.id].count || Math.random()-.5;
+    });
+  }
+  let curDia = 1; // se actualiza en el loop
+
+  const descansoMax = state.config.descansoMax || null;
+
+  // Helper: ¿esta obstétrica DEBE trabajar hoy porque superó el máximo de descanso?
+  function debeTrabajarHoy(m, d){
+    if(!descansoMax) return false;
+    const diasSinGuardia = d - est[m.id].ultimo;
+    return diasSinGuardia > descansoMax;
   }
 
   // FASE 1: cobertura mínima con presupuesto
   for(let d=1;d<=total;d++){
+    curDia = d;
+
+    // Primero: forzar a las que superaron el máximo de descanso
+    if(descansoMax){
+      const forzadas = activos.filter(m=>
+        debeTrabajarHoy(m,d) &&
+        puedeEseDia(m,d,true) &&
+        state.guardias[mk][String(d)].length < MAX_DIA
+      );
+      for(const m of forzadas){
+        if(state.guardias[mk][String(d)].length >= MAX_DIA) break;
+        asignarEnDia(m, d);
+      }
+    }
+
     while(state.guardias[mk][String(d)].length < MIN_DIA){
       let candidatos = sort_eq(activos.filter(m=>puedeEseDia(m,d,false)&&tienePrespuesto(m,d)));
       if(!candidatos.length) candidatos = sort_eq(activos.filter(m=>puedeEseDia(m,d,true)&&tienePrespuesto(m,d)));
@@ -1542,6 +1585,7 @@ function generarAuto(){
   // FASE 2: completar hasta MAX_DIA — orden aleatorio para distribuir el 4to slot
   const diasFase2 = [...Array(total).keys()].map(i=>i+1).sort(()=>Math.random()-.5);
   for(const d of diasFase2){
+    curDia = d;
     if(state.guardias[mk][String(d)].length >= MAX_DIA) continue;
     let candidatos = sort_eq(activos.filter(m=>puedeEseDia(m,d,false)&&tienePrespuesto(m,d)));
     if(!candidatos.length) candidatos = sort_eq(activos.filter(m=>puedeEseDia(m,d,true)&&tienePrespuesto(m,d)));
@@ -1656,6 +1700,7 @@ function aplicarGlobalATodos(){
 
 function renderConfig(){
   document.getElementById('cfg-descanso').value=state.config.descanso;
+  document.getElementById('cfg-descanso-max').value=state.config.descansoMax||'';
   document.getElementById('cfg-max-guard-global').value=state.config.maxGuardGlobal||8;
   document.getElementById('cfg-max-finde').value=state.config.maxFinde;
   document.getElementById('cfg-min-dia').value=state.config.minPorDia||3;
@@ -1666,6 +1711,8 @@ function renderConfig(){
 function guardarConfig(){
   state.config.maxGuardGlobal=parseInt(document.getElementById('cfg-max-guard-global').value)||8;
   state.config.descanso=parseInt(document.getElementById('cfg-descanso').value)||3;
+  const descansoMaxRaw=document.getElementById('cfg-descanso-max').value;
+  state.config.descansoMax=descansoMaxRaw!==''?parseInt(descansoMaxRaw):null;
   state.config.maxFinde=parseInt(document.getElementById('cfg-max-finde').value)||2;
   state.config.minPorDia=parseInt(document.getElementById('cfg-min-dia').value)||3;
   state.config.maxPorDia=parseInt(document.getElementById('cfg-max-dia').value)||4;
@@ -1713,6 +1760,136 @@ function resetTodo(){
   if(!confirm('¿Borrar TODO?')) return;
   if(!confirm('¿Estás segura?')) return;
   localStorage.removeItem('gh_v2'); location.reload();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  EXPORTAR PDF
+// ═══════════════════════════════════════════════════════════
+function exportarPDF(){
+  const { jsPDF } = window.jspdf;
+  if(!jsPDF){ alert('Error cargando jsPDF. Verificá tu conexión.'); return; }
+
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  const total = diasEnMes(curY, curM);
+  const g = getGuardiasMes(curY, curM);
+  const titulo = `${NOM_MES[curM-1]} ${curY}`;
+  const W = 210, H = 297;
+  const margen = 10;
+  const colW = (W - margen*2) / 7;
+
+  // ── Título ──
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(16);
+  doc.text(titulo, W/2, 18, {align:'center'});
+
+  // ── Cabecera días semana ──
+  const dias = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  doc.setFontSize(8);
+  doc.setFont('helvetica','bold');
+  let y = 24;
+  dias.forEach((d,i)=>{
+    doc.setFillColor(37,99,235);
+    doc.rect(margen + i*colW, y, colW, 6, 'F');
+    doc.setTextColor(255,255,255);
+    doc.text(d, margen + i*colW + colW/2, y+4.2, {align:'center'});
+  });
+  doc.setTextColor(0,0,0);
+
+  // ── Celdas del calendario ──
+  const start = primerDia(curY, curM);
+  const celH = 18; // altura celda
+  let row = 0, col = start;
+  y = 30;
+
+  // Colores por médico
+  const COLORES_RGB = [
+    [37,99,235],[13,148,136],[217,119,6],[220,38,38],[124,58,237],
+    [219,39,119],[8,145,178],[101,163,13],[234,88,12],[2,132,199],
+    [147,51,234],[192,38,211],[5,150,105],[202,138,4],[185,28,28],[79,70,229]
+  ];
+
+  function colorMedIdx(id){
+    const i = state.medicos.findIndex(m=>m.id===id);
+    return COLORES_RGB[i>=0?i%COLORES_RGB.length:0];
+  }
+
+  for(let d=1;d<=total;d++){
+    const x = margen + col*colW;
+    const cy = y + row*celH;
+
+    // Celda
+    doc.setDrawColor(200,200,200);
+    doc.setFillColor(248,250,252);
+    doc.rect(x, cy, colW, celH, 'FD');
+
+    // Número día
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(7);
+    doc.setTextColor(80,80,80);
+    doc.text(String(d), x+1.5, cy+3.5);
+
+    // Nombres
+    const asig = g[String(d)]||[];
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(5.5);
+    asig.slice(0,5).forEach((id,idx)=>{
+      const med = getMedico(id);
+      if(!med) return;
+      const [r,g2,b] = colorMedIdx(id);
+      // Mini chip de color
+      doc.setFillColor(r,g2,b);
+      doc.rect(x+1, cy+4.5+idx*2.6, 1.5, 1.5, 'F');
+      doc.setTextColor(30,30,30);
+      doc.text(med.nombre, x+3.5, cy+5.6+idx*2.6);
+    });
+
+    col++;
+    if(col===7){ col=0; row++; }
+  }
+
+  // ── Actividades del mes ──
+  const actY = y + (row+1)*celH + 6;
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(10);
+  doc.setTextColor(0,0,0);
+  doc.text('Actividades del mes — obstétricas fuera de guardia', margen, actY);
+
+  // Recopilar actividades
+  const todos = state.medicos.filter(m=>getEstadoMes(m.id,curY,curM)!=='inactivo');
+  const lineas = [];
+
+  todos.forEach(m=>{
+    const dias2=[];
+    for(let d=1;d<=total;d++){
+      const t=tipoEnFecha(m.id,curY,curM,d);
+      if(t==='consultorio'||t==='nodis') dias2.push({d,t});
+    }
+    if(!dias2.length) return;
+    // Detectar rango
+    const tipos=[...new Set(dias2.map(x=>x.t))];
+    if(tipos.length===1&&dias2.length>1){
+      const label={consultorio:'Consultorio',nodis:'No disponible'}[tipos[0]]||tipos[0];
+      const esContiguo=dias2.every((x,i)=>i===0||x.d===dias2[i-1].d+1);
+      if(esContiguo) lineas.push(`${m.nombre}: ${label} del ${dias2[0].d} al ${dias2[dias2.length-1].d}`);
+      else lineas.push(`${m.nombre}: ${label} días ${dias2.map(x=>x.d).join(', ')}`);
+    } else {
+      dias2.forEach(x=>{
+        const label={consultorio:'Consultorio',nodis:'No disponible'}[x.t]||x.t;
+        lineas.push(`${m.nombre}: ${label} día ${x.d}`);
+      });
+    }
+  });
+
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(8);
+  let ly = actY + 5;
+  lineas.forEach(l=>{
+    if(ly > H-10){ doc.addPage(); ly=15; }
+    doc.text(l, margen, ly);
+    ly+=5;
+  });
+
+  doc.save(`Guardias-${NOM_MES[curM-1]}-${curY}.pdf`);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1810,19 +1987,26 @@ document.addEventListener('keydown',e=>{
   <div class="inst-section">
     <h3>⚙️ PASO 3 — Configuración global</h3>
     <table class="inst-table">
-      <tr><th>Configuración</th><th>Valor recomendado</th></tr>
-      <tr><td>Días mínimos de descanso entre guardias</td><td>2</td></tr>
-      <tr><td>Máx. fines de semana por mes</td><td>2</td></tr>
-      <tr><td>Mínimo de obstétricas por guardia</td><td>3</td></tr>
-      <tr><td>Máximo de obstétricas por guardia</td><td>4</td></tr>
-      <tr><td>Máx. guardias por mes (global)</td><td>7 u 8</td></tr>
+      <tr><th>Configuración</th><th>Qué hace</th><th>Valor recomendado</th></tr>
+      <tr><td>Días mínimos de descanso</td><td>Si trabajó el día 1 con mínimo 2, puede volver el día 4</td><td>2</td></tr>
+      <tr><td>Días máximos de descanso</td><td>Si trabajó el día 1 con máximo 5, debe volver antes del día 7. Dejar vacío si no aplica.</td><td>Opcional</td></tr>
+      <tr><td>Máx. fines de semana por mes</td><td>Cuántos sáb/dom puede hacer por mes</td><td>2</td></tr>
+      <tr><td>Mínimo de obstétricas por guardia</td><td>Mínimo de personas por día</td><td>3</td></tr>
+      <tr><td>Máximo de obstétricas por guardia</td><td>Máximo de personas por día</td><td>4</td></tr>
+      <tr><td>Máx. guardias por mes (global)</td><td>Límite mensual para todas</td><td>7 u 8</td></tr>
     </table>
-    <div class="inst-tip">💡 Para cambiar el límite de guardias de todas a la vez: modificá el valor global y tocá <b>"Aplicar a todos"</b>.</div>
+    <div class="inst-tip">💡 Para cambiar el límite de todas a la vez: modificá el valor global y tocá <b>"Aplicar a todos"</b>.</div>
   </div>
 
   <div class="inst-section">
     <h3>🔍 PASO 4 — Diagnóstico antes de generar</h3>
-    <p>Tocá <strong>🔍 Diagnóstico</strong> en el Calendario. Te muestra si la configuración es viable o si hay conflictos que van a generar errores.</p>
+    <p>Tocá <strong>🔍 Diagnóstico</strong> en el Calendario. Te muestra:</p>
+    <ul>
+      <li>Cuántas obstétricas están disponibles para guardia este mes</li>
+      <li>Si los números cierran matemáticamente</li>
+      <li>Si alguna persona tiene configuración imposible de cumplir</li>
+      <li>Si los fines de semana van a quedar sin cubrir</li>
+    </ul>
     <div class="inst-alerta">🔴 Si aparece un error CRÍTICO, revisá la configuración antes de generar.</div>
   </div>
 
@@ -1853,6 +2037,7 @@ document.addEventListener('keydown',e=>{
       <li><b>Backup:</b> Config → ⬇ Backup (archivo .json)</li>
       <li><b>Restaurar:</b> Config → ⬆ Restaurar</li>
       <li><b>Exportar cronograma:</b> Resumen → ⬇ CSV</li>
+      <li><b>Descargar PDF:</b> Calendario → 📄 PDF — descarga el almanaque del mes con las guardias y las actividades de cada obstétrica</li>
       <li><b>Imprimir:</b> Calendario → 🖨 Imprimir</li>
     </ul>
     <div class="inst-alerta">⚠️ Si borrás los datos del navegador los datos se pierden. Hacé backup regularmente.</div>
