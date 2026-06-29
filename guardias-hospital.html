@@ -198,6 +198,13 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
   <div id="filtro-banner"></div>
   <div id="cal-alerts"></div>
   <div class="cal-grid" id="cal-grid"></div>
+  <div id="act-panel-btn-wrap" style="margin-top:10px"></div>
+  <div style="margin-top:16px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <span style="font-size:12px;color:var(--text2);font-weight:600">💾 Datos:</span>
+    <button class="btn btn-ghost btn-sm" onclick="exportarJSON()">⬇ Backup</button>
+    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('imp-file').click()">⬆ Restaurar</button>
+    <button class="btn btn-danger btn-sm" onclick="resetTodo()">⚠ Borrar todo</button>
+  </div>
   <div class="act-panel" id="act-panel" style="display:none">
     <div class="act-panel-title"><span>📋 Actividades del mes — obstétricas fuera de guardia</span><button class="btn btn-ghost btn-sm" onclick="document.getElementById('act-panel').style.display='none'">Ocultar</button></div>
     <div id="act-panel-body"></div>
@@ -292,16 +299,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
         <input type="number" id="cfg-equiv" min="1" max="10" value="4">
       </div>
     </div>
-    <div class="cfg-card">
-      <h3>💾 Datos</h3>
-      <div class="flex-gap mt-8">
-        <button class="btn btn-ghost" onclick="exportarJSON()">⬇ Backup</button>
-        <button class="btn btn-ghost" onclick="document.getElementById('imp-file').click()">⬆ Restaurar</button>
-        <input type="file" id="imp-file" accept=".json" style="display:none" onchange="importarJSON(event)">
-      </div>
-      <div class="divider"></div>
-      <button class="btn btn-danger btn-sm" onclick="resetTodo()">⚠ Borrar todo</button>
-    </div>
+    <input type="file" id="imp-file" accept=".json" style="display:none" onchange="importarJSON(event)">
     <div class="cfg-card">
       <h3>ℹ️ Tipos de disponibilidad</h3>
       <div class="text-sm" style="line-height:1.7">
