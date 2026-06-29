@@ -136,6 +136,12 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
 .text-sm{font-size:12px;color:var(--text2);}
 .tag-count{display:inline-flex;align-items:center;justify-content:center;background:var(--surface2);border:1px solid var(--border);border-radius:100px;font-size:10px;font-weight:700;padding:1px 7px;color:var(--text2);margin-left:4px;}
 .empty-state{text-align:center;padding:40px 20px;color:var(--text3);}
+.cm-ov{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:none;align-items:center;justify-content:center;padding:20px;}
+.cm-ov.open{display:flex;}
+.cm-box{background:#fff;border-radius:12px;padding:24px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.cm-title{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;}
+.cm-msg{font-size:14px;color:#111;line-height:1.6;margin-bottom:20px;white-space:pre-wrap;max-height:60vh;overflow-y:auto;}
+.cm-btns{display:flex;gap:8px;justify-content:flex-end;}
 .empty-state .icon{font-size:36px;margin-bottom:10px;}
 
 /* PANEL ACTIVIDADES */
@@ -174,12 +180,44 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
 </head>
 <body>
 
+<!-- Modal propio reemplaza alert/confirm -->
+<div class="cm-ov" id="cm-ov">
+  <div class="cm-box">
+    <div class="cm-title">🏥 Cronograma Guardias Maternidad</div>
+    <div class="cm-msg" id="cm-msg"></div>
+    <div class="cm-btns" id="cm-btns"></div>
+  </div>
+</div>
+<script>
+function showAlert(msg){
+  return new Promise(res=>{
+    document.getElementById('cm-msg').textContent=msg;
+    document.getElementById('cm-btns').innerHTML='<button class="btn btn-primary" onclick="cmClose(true)">Aceptar</button>';
+    document.getElementById('cm-ov').classList.add('open');
+    window._cmRes=res;
+  });
+}
+function showConfirm(msg){
+  return new Promise(res=>{
+    document.getElementById('cm-msg').textContent=msg;
+    document.getElementById('cm-btns').innerHTML='<button class="btn btn-ghost" onclick="cmClose(false)">Cancelar</button><button class="btn btn-primary" onclick="cmClose(true)">Aceptar</button>';
+    document.getElementById('cm-ov').classList.add('open');
+    window._cmRes=res;
+  });
+}
+function cmClose(r){
+  document.getElementById('cm-ov').classList.remove('open');
+  if(window._cmRes) window._cmRes(r);
+}
+</script>
+
 <div class="topbar">
   <div class="topbar-title">🏥 <span>Guardias</span> Hospital</div>
   <button class="nav-btn active" onclick="showView('calendario',this)">Calendario</button>
   <button class="nav-btn" onclick="showView('medicos',this)">Obstétricas</button>
   <button class="nav-btn" onclick="showView('resumen',this)">Resumen</button>
   <button class="nav-btn" onclick="showView('config',this)">Config</button>
+  <button class="nav-btn" onclick="showView('instructivo',this)">Instructivo</button>
 </div>
 
 <!-- ═══ CALENDARIO ═══ -->
@@ -900,7 +938,7 @@ function toggleMedDia(id, el){
   el.querySelector('.chk').textContent = el.classList.contains('selected') ? '✓' : '';
 }
 
-function guardarDia(){
+async function guardarDia(){
   const {y,m,d} = modalDiaActual;
   const g = getGuardiasMes(y,m);
   const sel = [];
@@ -914,7 +952,7 @@ function guardarDia(){
   renderCalendario();
 }
 
-function limpiarDia(){
+async function limpiarDia(){
   const {y,m,d} = modalDiaActual;
   const g = getGuardiasMes(y,m);
   g[String(d)] = [];
@@ -1242,7 +1280,7 @@ function getCheckedDow(containerId){
   return Array.from(document.querySelectorAll(`#${containerId} input[type=checkbox]:checked`)).map(c=>parseInt(c.value));
 }
 
-function agregarBloque(){
+async function agregarBloque(){
   const tipo    = document.getElementById('disp-tipo').value;
   const alcance = document.getElementById('disp-alcance').value;
   const horario = document.getElementById('disp-horario').value.trim();
@@ -1252,25 +1290,25 @@ function agregarBloque(){
   if(alcance==='rango'){
     const desde=document.getElementById('disp-desde').value;
     const hasta=document.getElementById('disp-hasta').value;
-    if(!desde||!hasta){ alert('Ingresá rango de fechas.'); return; }
-    if(desde>hasta){ alert('Fecha inicio debe ser antes del fin.'); return; }
+    if(!desde||!hasta){ await showAlert('Ingresá rango de fechas.'); return; }
+    if(desde>hasta){ await showAlert('Fecha inicio debe ser antes del fin.'); return; }
     b.desde=desde; b.hasta=hasta;
   } else if(alcance==='dias_sueltos'){
     const raw=document.getElementById('disp-sueltos').value;
     const dias=raw.split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n)&&n>=1&&n<=31);
-    if(!dias.length){ alert('Ingresá al menos un día válido.'); return; }
+    if(!dias.length){ await showAlert('Ingresá al menos un día válido.'); return; }
     b.dias=dias;
   } else if(alcance==='dias_semana'){
     const dow=getCheckedDow('dias-semana-checks');
-    if(!dow.length){ alert('Seleccioná al menos un día de semana.'); return; }
+    if(!dow.length){ await showAlert('Seleccioná al menos un día de semana.'); return; }
     b.dowList=dow;
   } else if(alcance==='combinado'){
     const desde=document.getElementById('disp-desde').value;
     const hasta=document.getElementById('disp-hasta').value;
     const dow=getCheckedDow('dias-semana-checks');
-    if(!desde||!hasta){ alert('Ingresá rango de fechas.'); return; }
-    if(desde>hasta){ alert('La fecha de inicio debe ser antes del fin.'); return; }
-    if(!dow.length){ alert('Seleccioná al menos un día de semana.'); return; }
+    if(!desde||!hasta){ await showAlert('Ingresá rango de fechas.'); return; }
+    if(desde>hasta){ await showAlert('La fecha de inicio debe ser antes del fin.'); return; }
+    if(!dow.length){ await showAlert('Seleccioná al menos un día de semana.'); return; }
     b.desde=desde; b.hasta=hasta; b.dowList=dow;
   }
   // 'mes' no necesita campos extra
@@ -1284,9 +1322,9 @@ function agregarBloque(){
   document.querySelectorAll('#dias-semana-checks input, #dias-semana-checks2 input').forEach(c=>c.checked=false);
 }
 
-function guardarMedico(){
+async function guardarMedico(){
   const nombre = document.getElementById('med-nombre').value.trim();
-  if(!nombre){ alert('Ingresá un nombre.'); return; }
+  if(!nombre){ await showAlert('Ingresá un nombre.'); return; }
   const estado = document.getElementById('med-estado').value;
   const maxGuardRaw = document.getElementById('med-max-guard').value;
   const maxGuard = maxGuardRaw!=='' ? parseInt(maxGuardRaw) : null;
@@ -1313,10 +1351,10 @@ function guardarMedico(){
   renderMedicos();
 }
 
-function eliminarMedico(){
+async function eliminarMedico(){
   if(!editMedicoId) return;
   const m=getMedico(editMedicoId);
-  if(!confirm(`¿Eliminar a ${m.nombre}?`)) return;
+  if(!await showConfirm(`¿Eliminar a ${m.nombre}?`)) return;
   state.medicos=state.medicos.filter(x=>x.id!==editMedicoId);
   save();
   cerrarModalMedico();
@@ -1326,7 +1364,7 @@ function eliminarMedico(){
 // ═══════════════════════════════════════════════════════════
 //  GENERACIÓN AUTOMÁTICA
 // ═══════════════════════════════════════════════════════════
-function diagnosticarMes(){
+async function diagnosticarMes(){
   const total = diasEnMes(curY, curM);
   const mesNom = `${NOM_MES[curM-1]} ${curY}`;
   const descanso = state.config.descanso;
@@ -1434,20 +1472,63 @@ function diagnosticarMes(){
     : alertas.some(a=>a.startsWith('🔴')) ? '🔴 Hay problemas críticos' : '🟡 Hay advertencias';
 
   const msg = `${titulo}\n\n${info.join('\n')}\n\n${alertas.length ? 'ALERTAS:\n' + alertas.join('\n') : 'No hay conflictos detectados. La configuración debería generar un cronograma completo.'}`;
-  alert(msg);
+  await showAlert(msg);
 }
 
-function generarAuto(){
+async function generarAuto(){
   const total = diasEnMes(curY,curM);
   const mk = mesKey(curY,curM);
   if(!state.guardias) state.guardias={};
 
   const activos = state.medicos.filter(m=>getEstadoMes(m.id,curY,curM)!=='inactivo');
-  if(!activos.length){ alert('No hay obstétricas activas.'); return; }
+  if(!activos.length){ await showAlert('No hay obstétricas activas.'); return; }
 
   const g = getGuardiasMes(curY,curM);
   const diasConAsig = Object.values(g).filter(v=>v&&v.length>0).length;
-  if(diasConAsig>0 && !confirm(`Este mes ya tiene ${diasConAsig} día(s) asignados. ¿Reemplazar?`)) return;
+  if(diasConAsig>0 && !await showConfirm(`Este mes ya tiene ${diasConAsig} día(s) asignados. ¿Reemplazar?`)) return;
+
+  // ── Funciones internas (definidas al inicio para que await posterior funcione) ──
+  function puedeEseDia(m, d, ignorarFinde=false){
+    if(state.guardias[mk][String(d)].includes(m.id)) return false;
+    if(!puedeHacerGuardia(m.id,curY,curM,d)) return false;
+    if(est[m.id].count >= est[m.id].maxG) return false;
+    const diffAntes = d - est[m.id].ultimo;
+    if(diffAntes <= descanso) return false;
+    for(let d2=d+1;d2<=Math.min(d+descanso,total);d2++){
+      if(state.guardias[mk][String(d2)].includes(m.id)) return false;
+    }
+    if(esOcupado(tipoEnFechaExt(m, d+1))) return false;
+    const esFd = esFinde(curY,curM,d);
+    if(!ignorarFinde && esFd && est[m.id].finde >= est[m.id].maxF) return false;
+    if(state.guardias[mk][String(d)].length >= MAX_DIA) return false;
+    return true;
+  }
+  function asignarEnDia(m, d){
+    state.guardias[mk][String(d)].push(m.id);
+    est[m.id].count++;
+    est[m.id].ultimo = d;
+    if(esFinde(curY,curM,d)) est[m.id].finde++;
+  }
+  function tienePrespuesto(m, d){
+    const diasRestantes = total - d;
+    const pendientes = est[m.id].maxG - est[m.id].count - 1;
+    if(pendientes <= 0) return true;
+    return diasRestantes >= pendientes * (descanso + 1);
+  }
+  function sort_eq(lista){
+    const descansoMax = state.config.descansoMax || null;
+    return lista.slice().sort((a,b)=>{
+      if(descansoMax){
+        const diasA = curDia - est[a.id].ultimo;
+        const diasB = curDia - est[b.id].ultimo;
+        const urgA = diasA >= descansoMax ? 1 : 0;
+        const urgB = diasB >= descansoMax ? 1 : 0;
+        if(urgA !== urgB) return urgB - urgA;
+      }
+      return est[a.id].count - est[b.id].count || Math.random()-.5;
+    });
+  }
+  let curDia = 1;
 
   // Limpiar mes
   state.guardias[mk]={};
@@ -1490,65 +1571,9 @@ function generarAuto(){
   //   - Máximo de fines de semana por mes por médico
   //   - Máximo MAX_DIA médicos por día
 
-  // Helper: ¿puede este médico ir el día d?
-  function puedeEseDia(m, d, ignorarFinde=false){
-    if(state.guardias[mk][String(d)].includes(m.id)) return false;
-    if(!puedeHacerGuardia(m.id,curY,curM,d)) return false;
-    if(est[m.id].count >= est[m.id].maxG) return false;
-    const diffAntes = d - est[m.id].ultimo;
-    if(diffAntes <= descanso) return false;
-    // Verificar que no tenga guardia asignada muy cerca después
-    for(let d2=d+1;d2<=Math.min(d+descanso,total);d2++){
-      if(state.guardias[mk][String(d2)].includes(m.id)) return false;
-    }
-    // No guardia el día antes de consultorio/tarde
-    if(esOcupado(tipoEnFechaExt(m, d+1))) return false;
-    const esFd = esFinde(curY,curM,d);
-    if(!ignorarFinde && esFd && est[m.id].finde >= est[m.id].maxF) return false;
-    if(state.guardias[mk][String(d)].length >= MAX_DIA) return false;
-    return true;
-  }
 
-  function asignarEnDia(m, d){
-    state.guardias[mk][String(d)].push(m.id);
-    est[m.id].count++;
-    est[m.id].ultimo = d;
-    if(esFinde(curY,curM,d)) est[m.id].finde++;
-  }
-
-  // Control de presupuesto: un médico solo puede tomar guardia hoy
-  // si le quedan suficientes días para distribuir sus guardias pendientes.
-  function tienePrespuesto(m, d){
-    const diasRestantes = total - d;
-    const pendientes = est[m.id].maxG - est[m.id].count - 1;
-    if(pendientes <= 0) return true;
-    return diasRestantes >= pendientes * (descanso + 1);
-  }
-
-  function sort_eq(lista){
-    const descansoMax = state.config.descansoMax || null;
-    return lista.slice().sort((a,b)=>{
-      // Si hay máximo de descanso, priorizar al que lleva más días sin guardia
-      if(descansoMax){
-        const diasA = curDia - est[a.id].ultimo; // días desde última guardia
-        const diasB = curDia - est[b.id].ultimo;
-        const urgA = diasA >= descansoMax ? 1 : 0;
-        const urgB = diasB >= descansoMax ? 1 : 0;
-        if(urgA !== urgB) return urgB - urgA; // urgente primero
-      }
-      return est[a.id].count - est[b.id].count || Math.random()-.5;
-    });
-  }
-  let curDia = 1; // se actualiza en el loop
 
   const descansoMax = state.config.descansoMax || null;
-
-  // Helper: ¿esta obstétrica DEBE trabajar hoy porque superó el máximo de descanso?
-  function debeTrabajarHoy(m, d){
-    if(!descansoMax) return false;
-    const diasSinGuardia = d - est[m.id].ultimo;
-    return diasSinGuardia > descansoMax;
-  }
 
   // FASE 1: cobertura mínima con presupuesto
   for(let d=1;d<=total;d++){
@@ -1557,7 +1582,7 @@ function generarAuto(){
     // Primero: forzar a las que superaron el máximo de descanso
     if(descansoMax){
       const forzadas = activos.filter(m=>
-        debeTrabajarHoy(m,d) &&
+        (!descansoMax ? false : (d - est[m.id].ultimo) > descansoMax) &&
         puedeEseDia(m,d,true) &&
         state.guardias[mk][String(d)].length < MAX_DIA
       );
@@ -1605,11 +1630,11 @@ function generarAuto(){
   if(diasBajos>0)  aviso+=`\n⚠️ ${diasBajos} día(s) con menos de ${MIN_DIA} médicos (insuficiente personal ese día).`;
   aviso+=`\n✅ ${diasOk} día(s) cubiertos con ${MIN_DIA}-${MAX_DIA} médicos.`;
 
-  alert(`✅ Generado ${NOM_MES[curM-1]} ${curY}.${aviso}\n\nResumen:\n${resumen}`);
+  await showAlert(`✅ Generado ${NOM_MES[curM-1]} ${curY}.${aviso}\n\nResumen:\n${resumen}`);
 }
 
-function limpiarMes(){
-  if(!confirm(`¿Limpiar ${NOM_MES[curM-1]} ${curY}?`)) return;
+async function limpiarMes(){
+  if(!await showConfirm(`¿Limpiar ${NOM_MES[curM-1]} ${curY}?`)) return;
   if(!state.guardias) state.guardias={};
   state.guardias[mesKey(curY,curM)]={};
   save(); renderCalendario();
@@ -1672,9 +1697,9 @@ function renderResumen(){
 // ═══════════════════════════════════════════════════════════
 //  CONFIG
 // ═══════════════════════════════════════════════════════════
-function aplicarGlobalATodos(){
+async function aplicarGlobalATodos(){
   const val = parseInt(document.getElementById('cfg-max-guard-global').value);
-  if(isNaN(val)||val<1){ alert('Ingresá un número válido primero.'); return; }
+  if(isNaN(val)||val<1){ await showAlert('Ingresá un número válido primero.'); return; }
   // Guardar el global primero
   state.config.maxGuardGlobal = val;
   // Borrar el valor individual de todos los médicos para el mes actual
@@ -1690,7 +1715,7 @@ function aplicarGlobalATodos(){
     }
   });
   save();
-  alert(`✅ Global seteado en ${val} guardias.\n${n} médico(s) reseteados al valor global para ${NOM_MES[curM-1]} ${curY}.`);
+  await showAlert(`✅ Global seteado en ${val} guardias.\n${n} médico(s) reseteados al valor global para ${NOM_MES[curM-1]} ${curY}.`);
 }
 
 function renderConfig(){
@@ -1703,7 +1728,7 @@ function renderConfig(){
   document.getElementById('cfg-equiv').value=state.config.equiv||4;
 }
 
-function guardarConfig(){
+async function guardarConfig(){
   state.config.maxGuardGlobal=parseInt(document.getElementById('cfg-max-guard-global').value)||8;
   state.config.descanso=parseInt(document.getElementById('cfg-descanso').value)||3;
   const descansoMaxRaw=document.getElementById('cfg-descanso-max').value;
@@ -1712,13 +1737,13 @@ function guardarConfig(){
   state.config.minPorDia=parseInt(document.getElementById('cfg-min-dia').value)||3;
   state.config.maxPorDia=parseInt(document.getElementById('cfg-max-dia').value)||4;
   state.config.equiv=parseInt(document.getElementById('cfg-equiv').value)||4;
-  save(); alert('✅ Configuración guardada.');
+  save(); await showAlert('✅ Configuración guardada.');
 }
 
 // ═══════════════════════════════════════════════════════════
 //  EXPORT / IMPORT
 // ═══════════════════════════════════════════════════════════
-function exportCSV(){
+async function exportCSV(){
   const mk=mesKey(curY,curM);
   const g=getGuardiasMes(curY,curM);
   const total=diasEnMes(curY,curM);
@@ -1735,34 +1760,34 @@ function exportCSV(){
   a.download=`guardias-${mk}.csv`; a.click();
 }
 
-function exportarJSON(){
+async function exportarJSON(){
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));
   a.download=`guardias-backup-${new Date().toISOString().slice(0,10)}.json`; a.click();
 }
 
-function importarJSON(ev){
+async function importarJSON(ev){
   const file=ev.target.files[0]; if(!file) return;
   const r=new FileReader();
-  r.onload=e=>{
-    try{ state=JSON.parse(e.target.result); save(); renderCalendario(); alert('✅ Importado.'); }
-    catch{ alert('Archivo inválido.'); }
+  r.onload=async e=>{
+    try{ state=JSON.parse(e.target.result); save(); renderCalendario(); await showAlert('✅ Importado.'); }
+    catch{ await showAlert('Archivo inválido.'); }
   };
   r.readAsText(file); ev.target.value='';
 }
 
-function resetTodo(){
-  if(!confirm('¿Borrar TODO?')) return;
-  if(!confirm('¿Estás segura?')) return;
+async function resetTodo(){
+  if(!await showConfirm('¿Borrar TODO?')) return;
+  if(!await showConfirm('¿Estás segura?')) return;
   localStorage.removeItem('gh_v2'); location.reload();
 }
 
 // ═══════════════════════════════════════════════════════════
 //  EXPORTAR PDF
 // ═══════════════════════════════════════════════════════════
-function exportarPDF(){
+async function exportarPDF(){
   const { jsPDF } = window.jspdf;
-  if(!jsPDF){ alert('Error cargando jsPDF. Verificá tu conexión.'); return; }
+  if(!jsPDF){ await showAlert('Error cargando jsPDF. Verificá tu conexión.'); return; }
 
   // ── Landscape A4 para máximo espacio ──
   const doc = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
