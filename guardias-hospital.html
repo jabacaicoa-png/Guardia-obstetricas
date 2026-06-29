@@ -1972,47 +1972,114 @@ async function exportarPDF(){
     if(col===7){col=0;row++;}
   }
 
-  // ── Actividades del mes ──
-  const actY = y + (row+1)*celH + 6;
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(10);
-  doc.setTextColor(0,0,0);
-  doc.text('Actividades del mes — obstétricas fuera de guardia', margen, actY);
+  // ── Actividades del mes al pie ──
+  // Agrupar por tipo: CONSULTORIO y NO DISPONIBLE
+  const todosAct = state.medicos;
+  const grupos = { consultorio: [], nodis: [] };
 
-  // Recopilar actividades
-  const todos = state.medicos.filter(m=>getEstadoMes(m.id,curY,curM)!=='inactivo');
-  const lineas = [];
+  todosAct.forEach(m=>{
+    const disp = getDispMes(m.id, curY, curM);
+    if(!disp || !disp.bloques || !disp.bloques.length) return;
 
-  todos.forEach(m=>{
-    const dias2=[];
-    for(let d=1;d<=total;d++){
-      const t=tipoEnFecha(m.id,curY,curM,d);
-      if(t==='consultorio'||t==='nodis') dias2.push({d,t});
+    // Obtener descripción resumida de los bloques por tipo
+    const bCons = disp.bloques.filter(b=>b.tipo==='consultorio');
+    const bNodis = disp.bloques.filter(b=>b.tipo==='nodis');
+
+    function descBloque(b){
+      let s = '';
+      switch(b.alcance){
+        case 'mes':     s = 'todo el mes'; break;
+        case 'habiles': s = 'días hábiles'; break;
+        case 'rango':   s = `del ${b.desde.slice(8)} al ${b.hasta.slice(8)}`; break;
+        case 'combinado':
+          const dows = (b.dowList||[]).map(i=>NOM_DIA[i]).join(', ');
+          s = `${dows} · del ${b.desde.slice(8)} al ${b.hasta.slice(8)}`; break;
+        case 'dias_semana': s = (b.dowList||[]).map(i=>NOM_DIA[i]).join(', '); break;
+        case 'dias_sueltos': s = `días ${(b.dias||[]).join(', ')}`; break;
+        default: s = b.alcance;
+      }
+      if(b.horario) s += ` · ${b.horario}`;
+      return s;
     }
-    if(!dias2.length) return;
-    // Detectar rango
-    const tipos=[...new Set(dias2.map(x=>x.t))];
-    if(tipos.length===1&&dias2.length>1){
-      const label={consultorio:'Consultorio',nodis:'No disponible'}[tipos[0]]||tipos[0];
-      const esContiguo=dias2.every((x,i)=>i===0||x.d===dias2[i-1].d+1);
-      if(esContiguo) lineas.push(`${m.nombre}: ${label} del ${dias2[0].d} al ${dias2[dias2.length-1].d}`);
-      else lineas.push(`${m.nombre}: ${label} días ${dias2.map(x=>x.d).join(', ')}`);
-    } else {
-      dias2.forEach(x=>{
-        const label={consultorio:'Consultorio',nodis:'No disponible'}[x.t]||x.t;
-        lineas.push(`${m.nombre}: ${label} día ${x.d}`);
+
+    if(bCons.length){
+      const desc = bCons.map(descBloque).join(' / ');
+      grupos.consultorio.push({nombre: m.nombre, desc});
+    }
+    if(bNodis.length){
+      const desc = bNodis.map(descBloque).join(' / ');
+      grupos.nodis.push({nombre: m.nombre, desc});
+    }
+  });
+
+  // Dibujar sección al pie
+  const actY = y + (row+1)*celH + 6;
+  let ly = actY;
+
+  if(grupos.consultorio.length || grupos.nodis.length){
+    // Línea separadora
+    doc.setDrawColor(180,180,180);
+    doc.line(margen, ly, W-margen, ly);
+    ly += 5;
+
+    // Título sección
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(9);
+    doc.setTextColor(37,99,235);
+    doc.text('ACTIVIDADES DEL MES', margen, ly);
+    ly += 6;
+
+    // CONSULTORIO
+    if(grupos.consultorio.length){
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(8);
+      doc.setTextColor(146,64,14); // amber
+      doc.text('CONSULTORIO', margen, ly);
+
+      doc.setFont('helvetica','normal');
+      doc.setTextColor(30,30,30);
+      grupos.consultorio.forEach(({nombre, desc})=>{
+        if(ly > H-10){ doc.addPage(); ly=15; }
+        // Nombre en negrita, descripción normal
+        doc.setFont('helvetica','bold');
+        const nW = doc.getTextWidth(nombre + '  ');
+        doc.text(nombre, margen+32, ly);
+        doc.setFont('helvetica','normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(80,80,80);
+        doc.text(desc, margen+32+nW, ly);
+        doc.setFontSize(8);
+        doc.setTextColor(30,30,30);
+        ly += 5;
+      });
+      ly += 2;
+    }
+
+    // NO DISPONIBLE
+    if(grupos.nodis.length){
+      if(ly > H-10){ doc.addPage(); ly=15; }
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(8);
+      doc.setTextColor(185,28,28); // red
+      doc.text('NO DISPONIBLE', margen, ly);
+
+      doc.setFont('helvetica','normal');
+      doc.setTextColor(30,30,30);
+      grupos.nodis.forEach(({nombre, desc})=>{
+        if(ly > H-10){ doc.addPage(); ly=15; }
+        doc.setFont('helvetica','bold');
+        const nW = doc.getTextWidth(nombre + '  ');
+        doc.text(nombre, margen+38, ly);
+        doc.setFont('helvetica','normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(80,80,80);
+        doc.text(desc, margen+38+nW, ly);
+        doc.setFontSize(8);
+        doc.setTextColor(30,30,30);
+        ly += 5;
       });
     }
-  });
-
-  doc.setFont('helvetica','normal');
-  doc.setFontSize(8);
-  let ly = actY + 5;
-  lineas.forEach(l=>{
-    if(ly > H-10){ doc.addPage(); ly=15; }
-    doc.text(l, margen, ly);
-    ly+=5;
-  });
+  }
 
   doc.save(`Guardias-${NOM_MES[curM-1]}-${curY}.pdf`);
 }
@@ -2164,7 +2231,7 @@ document.addEventListener('keydown',e=>{
       <li><b>Backup:</b> Config → ⬇ Backup (archivo .json)</li>
       <li><b>Restaurar:</b> Config → ⬆ Restaurar</li>
       <li><b>Exportar cronograma:</b> Resumen → ⬇ CSV</li>
-      <li><b>Descargar PDF:</b> Calendario → 📄 PDF — descarga el almanaque del mes con las guardias y las actividades de cada obstétrica</li>
+      <li><b>Descargar PDF:</b> Calendario → 📄 PDF — descarga el almanaque del mes con las guardias y al pie un resumen de actividades agrupado por tipo (Consultorio / No disponible), con el período y horario si corresponde</li>
       <li><b>Imprimir:</b> Calendario → 🖨 Imprimir</li>
     </ul>
     <div class="inst-alerta">⚠️ Si borrás los datos del navegador los datos se pierden. Hacé backup regularmente.</div>
