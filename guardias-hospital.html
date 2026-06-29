@@ -185,6 +185,28 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
+<script>
+function showAlert(msg){
+  return new Promise(res=>{
+    document.getElementById('cm-msg').textContent=msg;
+    document.getElementById('cm-btns').innerHTML='<button class="btn btn-primary" onclick="cmClose(true)">Aceptar</button>';
+    document.getElementById('cm-overlay').classList.add('open');
+    window._cmRes=res;
+  });
+}
+function showConfirm(msg){
+  return new Promise(res=>{
+    document.getElementById('cm-msg').textContent=msg;
+    document.getElementById('cm-btns').innerHTML='<button class="btn btn-ghost" onclick="cmClose(false)">Cancelar</button><button class="btn btn-primary" onclick="cmClose(true)">Aceptar</button>';
+    document.getElementById('cm-overlay').classList.add('open');
+    window._cmRes=res;
+  });
+}
+function cmClose(r){
+  document.getElementById('cm-overlay').classList.remove('open');
+  if(window._cmRes) window._cmRes(r);
+}
+</script>
 
 <div class="topbar">
   <div class="topbar-title">🏥 <span>Guardias</span> Hospital</div>
@@ -2137,28 +2159,6 @@ function closeCustomModal(result){
     <div class="cm-btns" id="cm-btns"></div>
   </div>
 </div>
-<script>
-function showAlert(msg){
-  return new Promise(res=>{
-    document.getElementById('cm-msg').textContent=msg;
-    document.getElementById('cm-btns').innerHTML='<button class="btn btn-primary" onclick="cmClose(true)">Aceptar</button>';
-    document.getElementById('cm-overlay').classList.add('open');
-    window._cmRes=res;
-  });
-}
-function showConfirm(msg){
-  return new Promise(res=>{
-    document.getElementById('cm-msg').textContent=msg;
-    document.getElementById('cm-btns').innerHTML='<button class="btn btn-ghost" onclick="cmClose(false)">Cancelar</button><button class="btn btn-primary" onclick="cmClose(true)">Aceptar</button>';
-    document.getElementById('cm-overlay').classList.add('open');
-    window._cmRes=res;
-  });
-}
-function cmClose(r){
-  document.getElementById('cm-overlay').classList.remove('open');
-  if(window._cmRes) window._cmRes(r);
-}
-</script>
 
 </body>
 </html>
