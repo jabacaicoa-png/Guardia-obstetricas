@@ -312,9 +312,23 @@ function cmClose(r){
         <label>Días máximos de descanso entre guardias <span style="font-weight:400;font-size:10px;text-transform:none;color:var(--text3)">(opcional)</span></label>
         <input type="number" id="cfg-descanso-max" min="1" max="31" placeholder="Sin límite">
       </div>
-      <div class="form-group mt-8">
-        <label>Máximo de fines de semana por obstétrica/mes</label>
-        <input type="number" id="cfg-max-finde" min="1" max="8" value="2">
+      <div style="background:#f8fafc;border:1px solid var(--border);border-radius:var(--rs);padding:12px;margin-top:8px">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">📅 Fines de semana</div>
+        <div class="form-row" style="gap:8px">
+          <div class="form-group" style="flex:1">
+            <label>Mínimo por obstétrica/mes <span style="font-weight:400;font-size:10px;text-transform:none;color:var(--text3)">(opcional)</span></label>
+            <input type="number" id="cfg-min-finde" min="0" max="8" placeholder="Sin mínimo">
+          </div>
+          <div class="form-group" style="flex:1">
+            <label>Máximo por obstétrica/mes</label>
+            <input type="number" id="cfg-max-finde" min="0" max="8" value="2">
+          </div>
+        </div>
+        <div class="form-group mt-8" style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="cfg-finde-equit" style="width:16px;height:16px;cursor:pointer">
+          <label style="margin:0;text-transform:none;font-size:13px;font-weight:500;cursor:pointer" for="cfg-finde-equit">Distribuir fines de semana equitativamente</label>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">Si está marcado, el algoritmo intenta que todas hagan la misma cantidad de fines, sin que nadie acumule más que otras.</div>
       </div>
       <div class="form-group mt-8">
         <label>Mínimo de obstétricas por guardia</label>
@@ -402,7 +416,11 @@ function cmClose(r){
         <input type="number" id="med-max-guard" min="0" max="31" placeholder="Global">
       </div>
       <div class="form-group" style="flex:1">
-        <label>Máx. fines de semana este mes</label>
+        <label>Mín. fines este mes <span style="font-weight:400;font-size:10px;text-transform:none;color:var(--text3)">(opcional)</span></label>
+        <input type="number" id="med-min-finde" min="0" max="8" placeholder="Global">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label>Máx. fines este mes</label>
         <input type="number" id="med-max-finde" min="0" max="8" placeholder="Global">
       </div>
     </div>
@@ -567,6 +585,8 @@ function load(){
   if(state.config.descanso===undefined) state.config.descanso=3;
   if(state.config.descansoMax===undefined) state.config.descansoMax=null;
   if(state.config.maxFinde===undefined) state.config.maxFinde=2;
+  if(state.config.minFinde===undefined) state.config.minFinde=null;
+  if(state.config.findeEquitativo===undefined) state.config.findeEquitativo=false;
   if(state.config.equiv===undefined) state.config.equiv=4;
   if(state.config.maxGuardGlobal===undefined) state.config.maxGuardGlobal=8;
   if(state.config.minPorDia===undefined) state.config.minPorDia=3;
@@ -1183,6 +1203,7 @@ function abrirModalNuevoMedico(){
   const globalG2 = state.config.maxGuardGlobal||8;
   document.getElementById('med-max-guard-hint').textContent=`(global: ${globalG2})`;
   document.getElementById('med-max-guard').value='';
+  document.getElementById('med-min-finde').value='';
   document.getElementById('med-max-finde').value='';
   document.getElementById('modal-med-title').textContent=`Nueva obstétrica — ${NOM_MES[curM-1]} ${curY}`;
   document.getElementById('modal-mes-label').textContent=`${NOM_MES[curM-1]} ${curY}`;
@@ -1213,6 +1234,7 @@ function abrirModalMedico(id){
   const globalG = state.config.maxGuardGlobal||8;
   document.getElementById('med-max-guard-hint').textContent=`(global: ${globalG})`;
   document.getElementById('med-max-guard').value=disp?.maxGuard!=null?disp.maxGuard:'';
+  document.getElementById('med-min-finde').value=disp?.minFinde??'';
   document.getElementById('med-max-finde').value=disp?.maxFinde??'';
   document.getElementById('modal-med-title').textContent=`Editar: ${m.nombre} — ${NOM_MES[curM-1]} ${curY}`;
   document.getElementById('modal-mes-label').textContent=`${NOM_MES[curM-1]} ${curY}`;
@@ -1328,6 +1350,8 @@ async function guardarMedico(){
   const estado = document.getElementById('med-estado').value;
   const maxGuardRaw = document.getElementById('med-max-guard').value;
   const maxGuard = maxGuardRaw!=='' ? parseInt(maxGuardRaw) : null;
+  const minFindeVal = document.getElementById('med-min-finde').value;
+  const minFinde = minFindeVal!=='' ? parseInt(minFindeVal) : null;
   const maxFindeVal = document.getElementById('med-max-finde').value;
   const maxFinde = maxFindeVal!=='' ? parseInt(maxFindeVal) : null;
   const mk = mesKey(curY,curM);
@@ -1337,8 +1361,9 @@ async function guardarMedico(){
     m.nombre=nombre; // nombre es global, estado va por mes
     if(!m.disponibilidad) m.disponibilidad={};
     if(!m.disponibilidad[mk]) m.disponibilidad[mk]={ estado:'activo', maxGuard:null, maxFinde:null, bloques:[] };
-    m.disponibilidad[mk].estado   = estado;  // ← guardar estado por mes
+    m.disponibilidad[mk].estado   = estado;
     m.disponibilidad[mk].maxGuard = maxGuard;
+    m.disponibilidad[mk].minFinde = minFinde;
     m.disponibilidad[mk].maxFinde = maxFinde;
     m.disponibilidad[mk].bloques  = JSON.parse(JSON.stringify(editBloques));
   } else {
@@ -1448,6 +1473,33 @@ async function diagnosticarMes(){
     alertas.push(`🟡 FINES AJUSTADOS: ${totalFindeSlots} cupos vs ${findeNecMin} necesarios. Poco margen, algunos fines pueden quedar con menos médicos.`);
   }
 
+  // Validar minFinde vs maxFinde
+  const minFindeGl = state.config.minFinde || null;
+  if(minFindeGl !== null && minFindeGl > maxFindeGl){
+    alertas.push(`🔴 FINES IMPOSIBLES: El mínimo de fines (${minFindeGl}) es mayor al máximo (${maxFindeGl}). Corregí la configuración.`);
+  }
+  if(minFindeGl !== null){
+    const totalFindeOblig = paraGuardia.length * minFindeGl;
+    if(totalFindeOblig > nFinde * MAX_DIA){
+      alertas.push(`🔴 FINES IMPOSIBLES: Se requieren ${totalFindeOblig} asignaciones de finde mínimas (${paraGuardia.length} obstétricas × ${minFindeGl}) pero solo hay ${nFinde * MAX_DIA} slots disponibles en fines de semana.`);
+    }
+  }
+
+  // Validar descanso mínimo vs máximo
+  const descansoMax = state.config.descansoMax || null;
+  if(descansoMax !== null){
+    if(descansoMax < descanso){
+      alertas.push(`🔴 DESCANSO IMPOSIBLE: El máximo de descanso (${descansoMax} días) es menor al mínimo (${descanso} días). Esto es contradictorio — no hay ningún intervalo válido entre guardias.`);
+    } else if(descansoMax === descanso){
+      // Exactamente un intervalo posible: descanso+1 días entre guardias
+      const intervalo = descanso + 1;
+      const guardiasPosibles = Math.floor((total - 1) / intervalo) + 1;
+      alertas.push(`🟡 DESCANSO MUY RESTRICTIVO: Mínimo y máximo iguales (${descanso} días) significa que cada obstétrica DEBE hacer guardia exactamente cada ${intervalo} días, sin margen. Posibles ${guardiasPosibles} guardias por mes. Cualquier conflicto de disponibilidad dejará días sin cubrir.`);
+    } else if(descansoMax - descanso <= 1){
+      alertas.push(`🟡 POCO MARGEN DE DESCANSO: Entre ${descanso} y ${descansoMax} días de descanso deja muy poco margen al algoritmo. Puede haber días sin cubrir si hay restricciones de disponibilidad.`);
+    }
+  }
+
   // Médicos con problemas individuales
   paraGuardia.forEach(m => {
     const maxG = maxGPorMed[m.id];
@@ -1517,14 +1569,26 @@ async function generarAuto(){
   }
   function sort_eq(lista){
     const descansoMax = state.config.descansoMax || null;
+    const minFG = state.config.minFinde || 0;
+    const findeEquit = state.config.findeEquitativo || false;
     return lista.slice().sort((a,b)=>{
+      // Prioridad 1: urgente por descanso máximo
       if(descansoMax){
-        const diasA = curDia - est[a.id].ultimo;
-        const diasB = curDia - est[b.id].ultimo;
-        const urgA = diasA >= descansoMax ? 1 : 0;
-        const urgB = diasB >= descansoMax ? 1 : 0;
+        const urgA = (curDia - est[a.id].ultimo) >= descansoMax ? 1 : 0;
+        const urgB = (curDia - est[b.id].ultimo) >= descansoMax ? 1 : 0;
         if(urgA !== urgB) return urgB - urgA;
       }
+      // Prioridad 2: garantizar mínimo de fines (si es día de finde)
+      if(esFinde(curY,curM,curDia) && minFG > 0){
+        const debA = est[a.id].finde < minFG ? 1 : 0;
+        const debB = est[b.id].finde < minFG ? 1 : 0;
+        if(debA !== debB) return debB - debA;
+      }
+      // Prioridad 3: distribución equitativa de fines
+      if(findeEquit && esFinde(curY,curM,curDia)){
+        if(est[a.id].finde !== est[b.id].finde) return est[a.id].finde - est[b.id].finde;
+      }
+      // Prioridad 4: equidad de guardias
       return est[a.id].count - est[b.id].count || Math.random()-.5;
     });
   }
@@ -1723,6 +1787,8 @@ function renderConfig(){
   document.getElementById('cfg-descanso-max').value=state.config.descansoMax||'';
   document.getElementById('cfg-max-guard-global').value=state.config.maxGuardGlobal||8;
   document.getElementById('cfg-max-finde').value=state.config.maxFinde;
+  document.getElementById('cfg-min-finde').value=state.config.minFinde||'';
+  document.getElementById('cfg-finde-equit').checked=state.config.findeEquitativo||false;
   document.getElementById('cfg-min-dia').value=state.config.minPorDia||3;
   document.getElementById('cfg-max-dia').value=state.config.maxPorDia||4;
   document.getElementById('cfg-equiv').value=state.config.equiv||4;
@@ -1734,6 +1800,9 @@ async function guardarConfig(){
   const descansoMaxRaw=document.getElementById('cfg-descanso-max').value;
   state.config.descansoMax=descansoMaxRaw!==''?parseInt(descansoMaxRaw):null;
   state.config.maxFinde=parseInt(document.getElementById('cfg-max-finde').value)||2;
+  const minFindeRaw=document.getElementById('cfg-min-finde').value;
+  state.config.minFinde=minFindeRaw!==''?parseInt(minFindeRaw):null;
+  state.config.findeEquitativo=document.getElementById('cfg-finde-equit').checked;
   state.config.minPorDia=parseInt(document.getElementById('cfg-min-dia').value)||3;
   state.config.maxPorDia=parseInt(document.getElementById('cfg-max-dia').value)||4;
   state.config.equiv=parseInt(document.getElementById('cfg-equiv').value)||4;
@@ -2046,7 +2115,9 @@ document.addEventListener('keydown',e=>{
       <tr><th>Configuración</th><th>Qué hace</th><th>Valor recomendado</th></tr>
       <tr><td>Días mínimos de descanso</td><td>Si trabajó el día 1 con mínimo 2, puede volver el día 4</td><td>2</td></tr>
       <tr><td>Días máximos de descanso</td><td>Si trabajó el día 1 con máximo 5, debe volver antes del día 7. Dejar vacío si no aplica.</td><td>Opcional</td></tr>
-      <tr><td>Máx. fines de semana por mes</td><td>Cuántos sáb/dom puede hacer por mes</td><td>2</td></tr>
+      <tr><td>Mín. fines de semana por mes</td><td>Mínimo garantizado. Si ponés 1, todas deben hacer al menos 1 fin. Vacío = sin mínimo.</td><td>Opcional</td></tr>
+      <tr><td>Máx. fines de semana por mes</td><td>Cuántos sáb/dom puede hacer por mes como máximo</td><td>2</td></tr>
+      <tr><td>Distribuir fines equitativamente</td><td>Si está marcado, el algoritmo nivela la cantidad de fines entre todas. Nadie acumula más que otras.</td><td>Opcional</td></tr>
       <tr><td>Mínimo de obstétricas por guardia</td><td>Mínimo de personas por día</td><td>3</td></tr>
       <tr><td>Máximo de obstétricas por guardia</td><td>Máximo de personas por día</td><td>4</td></tr>
       <tr><td>Máx. guardias por mes (global)</td><td>Límite mensual para todas</td><td>7 u 8</td></tr>
