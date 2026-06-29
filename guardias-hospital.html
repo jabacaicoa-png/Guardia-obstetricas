@@ -183,8 +183,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
   <button class="nav-btn" onclick="showView('resumen',this)">Resumen</button>
   <button class="nav-btn" onclick="showView('config',this)">Config</button>
   <button class="nav-btn" onclick="showView('instructivo',this)">📖</button>
-  <button class="btn btn-ghost btn-sm" id="btn-drive" onclick="driveSync()" style="margin-left:6px;font-size:11px" title="Sincronizar con Google Drive">☁</button>
-  <div id="drive-badge" style="font-size:10px;color:var(--text3);margin-left:2px"></div>
 </div>
 
 <!-- ═══ CALENDARIO ═══ -->
@@ -201,6 +199,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
     <button class="btn btn-ghost" onclick="limpiarMes()">🗑 Limpiar mes</button>
     <button class="btn btn-ghost" onclick="window.print()">🖨 Imprimir</button>
     <button class="btn btn-ghost" onclick="exportarPDF()">📄 PDF</button>
+    <button class="btn btn-ghost" id="btn-drive" onclick="driveSync()">☁ Sync</button>
+    <div id="drive-badge" style="font-size:10px;color:var(--text2);align-self:center"></div>
   </div>
   <div id="filtro-banner"></div>
   <div id="cal-alerts"></div>
@@ -2156,10 +2156,15 @@ async function writeFile(token,data,fileId=null){
 
 async function driveSync(silencioso=false){
   if(driveSyncing) return;
+  // Verificar que Google esté cargado
+  if(!window.google || !window.google.accounts){
+    alert('Google aún no cargó. Esperá unos segundos y volvé a intentar.');
+    return;
+  }
   driveSyncing=true;
   setDriveBadge('Conectando...','var(--accent)');
   const btn=document.getElementById('btn-drive');
-  if(btn) btn.textContent='⏳';
+  if(btn) btn.textContent='⏳ Sync';
 
   try{
     const token = await getToken();
@@ -2216,7 +2221,7 @@ async function driveSync(silencioso=false){
   }
 
   driveSyncing=false;
-  if(btn) btn.textContent='☁';
+  if(btn) btn.textContent='☁ Sync';
 }
 
 // Mostrar último sync al cargar
