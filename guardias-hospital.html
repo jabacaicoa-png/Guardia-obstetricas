@@ -1248,7 +1248,7 @@ function getCheckedDow(containerId){
   return Array.from(document.querySelectorAll(`#${containerId} input[type=checkbox]:checked`)).map(c=>parseInt(c.value));
 }
 
-function agregarBloque(){
+async function agregarBloque(){
   const tipo    = document.getElementById('disp-tipo').value;
   const alcance = document.getElementById('disp-alcance').value;
   const horario = document.getElementById('disp-horario').value.trim();
@@ -1332,7 +1332,7 @@ async function eliminarMedico(){
 // ═══════════════════════════════════════════════════════════
 //  GENERACIÓN AUTOMÁTICA
 // ═══════════════════════════════════════════════════════════
-function diagnosticarMes(){
+async function diagnosticarMes(){
   const total = diasEnMes(curY, curM);
   const mesNom = `${NOM_MES[curM-1]} ${curY}`;
   const descanso = state.config.descanso;
@@ -1724,7 +1724,7 @@ async function guardarConfig(){
 // ═══════════════════════════════════════════════════════════
 //  EXPORT / IMPORT
 // ═══════════════════════════════════════════════════════════
-function exportCSV(){
+async function exportCSV(){
   const mk=mesKey(curY,curM);
   const g=getGuardiasMes(curY,curM);
   const total=diasEnMes(curY,curM);
@@ -1741,7 +1741,7 @@ function exportCSV(){
   a.download=`guardias-${mk}.csv`; a.click();
 }
 
-function exportarJSON(){
+async function exportarJSON(){
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));
   a.download=`guardias-backup-${new Date().toISOString().slice(0,10)}.json`; a.click();
